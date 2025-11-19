@@ -1,0 +1,36 @@
+{
+  "name": "reenbit-task-manager-be",
+  "version": "1.0.0",
+  "description": "Backend for task manager app",
+  "main": "app.ts",
+  "scripts": {
+    "dev": "nodemon src/app.ts",
+    "build": "tsc",
+    "start": "node build/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AppleCherryJaM/reenbit-task-manager-be.git"
+  },
+  "author": "Maksym Bolsunovskyi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AppleCherryJaM/reenbit-task-manager-be/issues"
+  },
+  "homepage": "https://github.com/AppleCherryJaM/reenbit-task-manager-be#readme",
+  "dependencies": {
+    "@prisma/client": "^7.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
+    "prisma": "^7.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
