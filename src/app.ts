@@ -1,20 +1,19 @@
 import * as dotenv from 'dotenv';
+import express, { Application, Request, Response } from 'express';
+
+import router from './routes/main-router';
+
 dotenv.config();
 
-import express, { Application, Request, Response } from 'express';
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.get('/api', (req: Request, res: Response) => {
-  res.json({ message: 'Hello from TypeScript Express!' });
-});
+app.use('/api', router);
 
-// Запуск сервера
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

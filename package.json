@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/app.ts",
     "build": "tsc",
-    "start": "node build/app.js"
+    "start": "node build/app.js",
+    "generate": "npx prisma generate"
   },
   "repository": {
     "type": "git",
