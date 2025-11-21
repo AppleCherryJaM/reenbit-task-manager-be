@@ -11,6 +11,6 @@ userRouter.get("/:id/tasks", userController.getUserTasks);
 
 userRouter.delete("/:id", userController.deleteUser);
 
-userRouter.put('/:id', userController.updateUser);
+userRouter.put("/:id", userController.updateUser);
 
 export default userRouter;

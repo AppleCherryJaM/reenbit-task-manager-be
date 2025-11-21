@@ -10,6 +10,6 @@ taskRouter.get("/:id", taskController.getTaskById);
 
 taskRouter.delete("/:id", taskController.deleteTask);
 
-taskRouter.patch("/:id", taskController.updateTask);
+taskRouter.put("/:id", taskController.updateTask);
 
 export default taskRouter;
