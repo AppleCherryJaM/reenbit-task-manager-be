@@ -1,11 +1,13 @@
 import type { Response } from "express";
 import { prisma } from "../../lib/prisma";
-import {
-	type UserBasicInfo,
-	type CreateTaskRequest,
-	type TaskParamsRequest,
-	type UpdateTaskRequest,
+import { ErrorHandler } from "../../models/errors/ErrorHandler";
+import type {
+	CreateTaskRequest,
+	TaskParamsRequest,
+	UpdateTaskRequest,
+	UserBasicInfo,
 } from "./task.types";
+import { TaskStatus } from "./task.types";
 
 class TaskController {
 	constructor() {
@@ -34,39 +36,17 @@ class TaskController {
 	};
 
 	private isValidStatus(status: string): boolean {
-		const validStatuses = ["pending", "in_progress", "completed"];
-		return validStatuses.includes(status);
+		return Object.values(TaskStatus).includes(status as TaskStatus);
 	}
 
-	private handleError(error: unknown, res: Response, defaultMessage: string) {
-		console.error("Task Controller Error:", error);
-
-		if (error instanceof Error) {
-			if (
-				error.message.includes("Record to update not found") ||
-				error.message.includes("Record to delete does not exist")
-			) {
-				return res.status(404).json({ error: "Task not found" });
-			}
-			if (error.message.includes("Foreign key constraint")) {
-				return res.status(400).json({ error: "Related record not found" });
-			}
-			if (error.message.includes("Unique constraint")) {
-				return res.status(400).json({ error: "Assignee already assigned to this task" });
-			}
-		}
-
-		res.status(500).json({ error: defaultMessage });
-	}
-
-	private async findTaskById(id: number) {
+	private async findTaskById(id: number): Promise<any> {
 		return await prisma.task.findUnique({
 			where: { id },
 			include: this.taskIncludeConfig,
 		});
 	}
 
-	async getTasks(req: CreateTaskRequest, res: Response) {
+	async getTasks(req: CreateTaskRequest, res: Response): Promise<void> {
 		try {
 			const tasks = await prisma.task.findMany({
 				include: this.taskIncludeConfig,
@@ -74,40 +54,43 @@ class TaskController {
 			});
 			res.json(tasks);
 		} catch (error) {
-			this.handleError(error, res, "Error while getting tasks");
+			ErrorHandler.handleAndSendError(error, res, "Error while getting tasks");
 		}
 	}
 
-	async getTaskById(req: TaskParamsRequest, res: Response) {
+	async getTaskById(req: TaskParamsRequest, res: Response): Promise<void> {
 		try {
 			const { id } = req.params;
 			const task = await this.findTaskById(Number.parseInt(id));
 
 			if (!task) {
-				return res.status(404).json({ error: "Task not found" });
+				res.status(404).json({ error: "Task not found" });
+				return;
 			}
 
 			res.json(task);
 		} catch (error) {
-			this.handleError(error, res, "Error while getting task");
+			ErrorHandler.handleAndSendError(error, res, "Error while getting task");
 		}
 	}
 
-	async createTask(req: CreateTaskRequest, res: Response) {
+	async createTask(req: CreateTaskRequest, res: Response): Promise<void> {
 		try {
 			const { title, description, status, authorId, assigneeIds } = req.body;
 
 			if (!title) {
-				return res.status(400).json({ error: "Title is required" });
+				res.status(400).json({ error: "Title is required" });
+				return;
 			}
 			if (!authorId) {
-				return res.status(400).json({ error: "Author ID is required" });
+				res.status(400).json({ error: "Author ID is required" });
+				return;
 			}
 
 			const taskData = {
 				title,
 				description,
-				status: status || "pending",
+				status: status || TaskStatus.PENDING,
 				authorId,
 				...(assigneeIds &&
 					assigneeIds.length > 0 && {
@@ -124,31 +107,38 @@ class TaskController {
 
 			res.status(201).json(task);
 		} catch (error) {
-			this.handleError(error, res, "Error while creating task");
+			ErrorHandler.handleAndSendError(error, res, "Error while creating task");
 		}
 	}
 
-	async updateTask(req: UpdateTaskRequest, res: Response) {
+	async updateTask(req: UpdateTaskRequest, res: Response): Promise<void> {
 		try {
 			const { id } = req.params;
 			const { title, description, status, assigneeIds } = req.body;
 
 			if (status && !this.isValidStatus(status)) {
-				return res.status(400).json({
-					error: "Invalid status. Allowed values: pending, in_progress, completed",
+				res.status(400).json({
+					error: `Invalid status. Allowed values: ${Object.values(TaskStatus).join(", ")}`,
 				});
+				return;
 			}
 
 			const updateData: {
 				title?: string;
 				description?: string | null;
 				status?: string;
-				assignees?: { set: { id: number }[]; };
+				assignees?: { set: { id: number }[] };
 			} = {};
 
-			if (title) { updateData.title = title; }
-			if (description !== undefined) { updateData.description = description; }
-			if (status) { updateData.status = status; }
+			if (title) {
+				updateData.title = title;
+			}
+			if (description !== undefined) {
+				updateData.description = description;
+			}
+			if (status) {
+				updateData.status = status;
+			}
 
 			if (assigneeIds) {
 				updateData.assignees = {
@@ -164,11 +154,11 @@ class TaskController {
 
 			res.json(task);
 		} catch (error) {
-			this.handleError(error, res, "Error while updating task");
+			ErrorHandler.handleAndSendError(error, res, "Error while updating task");
 		}
 	}
 
-	async deleteTask(req: TaskParamsRequest, res: Response) {
+	async deleteTask(req: TaskParamsRequest, res: Response): Promise<void> {
 		try {
 			const { id } = req.params;
 
@@ -178,7 +168,7 @@ class TaskController {
 
 			res.status(204).send();
 		} catch (error) {
-			this.handleError(error, res, "Error while deleting task");
+			ErrorHandler.handleAndSendError(error, res, "Error while deleting task");
 		}
 	}
 }

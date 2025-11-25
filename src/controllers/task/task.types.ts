@@ -57,4 +57,10 @@ export interface AssigneeOperationRequest extends Request {
 	params: { id: string };
 }
 
+export enum TaskStatus {
+	PENDING = "pending",
+	IN_PROGRESS = "in_progress",
+	COMPLETED = "completed",
+}
+
 export type TaskResponse = Omit<TaskWithRelations, "author" | "assignees">;

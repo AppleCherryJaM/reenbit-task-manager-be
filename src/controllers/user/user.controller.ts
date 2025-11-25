@@ -3,7 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { type CreateUserRequest, UpdateUserInput, type UpdateUserRequest } from "./user.types";
 
 class UserController {
-	async getAllUsers(req: CreateUserRequest, res: Response) {
+	async getAllUsers(req: CreateUserRequest, res: Response): Promise<void> {
 		try {
 			const users = await prisma.user.findMany({
 				select: {
@@ -26,7 +26,7 @@ class UserController {
 		}
 	}
 
-	async getUserById(req: UpdateUserRequest, res: Response) {
+	async getUserById(req: UpdateUserRequest, res: Response): Promise<void> {
 		const { id } = req.params;
 		try {
 			const user = await prisma.user.findUnique({
@@ -75,7 +75,8 @@ class UserController {
 			});
 
 			if (!user) {
-				return res.status(404).json({ error: "Cannot find user with this id" });
+				res.status(404).json({ error: "Cannot find user with this id" });
+				return;
 			}
 			res.status(200).json(user);
 		} catch (error) {
@@ -84,11 +85,12 @@ class UserController {
 		}
 	}
 
-	async createUser(req: CreateUserRequest, res: Response) {
+	async createUser(req: CreateUserRequest, res: Response): Promise<void> {
 		const { name, email } = req.body;
 		try {
 			if (!email) {
-				return res.status(400).json({ error: "Email is required" });
+				res.status(400).json({ error: "Email is required" });
+				return;
 			}
 
 			const user = await prisma.user.create({
@@ -106,14 +108,15 @@ class UserController {
 			console.error("Error creating user:", error);
 
 			if (error instanceof Error && error.message.includes("Unique constraint")) {
-				return res.status(400).json({ error: "User with current email already exists" });
+				res.status(400).json({ error: "User with current email already exists" });
+				return;
 			}
 
 			res.status(500).json({ error: "Error while user creation" });
 		}
 	}
 
-	async updateUser(req: UpdateUserRequest, res: Response) {
+	async updateUser(req: UpdateUserRequest, res: Response): Promise<void> {
 		try {
 			const { id } = req.params;
 			const { email, name } = req.body;
@@ -137,14 +140,15 @@ class UserController {
 			console.error("Error updating user:", error);
 
 			if (error instanceof Error && error.message.includes("Record to update not found")) {
-				return res.status(404).json({ error: "Cannot find this user" });
+				res.status(404).json({ error: "Cannot find this user" });
+				return;
 			}
 
 			res.status(500).json({ error: "Error while updating user" });
 		}
 	}
 
-	async deleteUser(req: UpdateUserRequest, res: Response) {
+	async deleteUser(req: UpdateUserRequest, res: Response): Promise<void> {
 		try {
 			const { id } = req.params;
 
@@ -157,14 +161,15 @@ class UserController {
 			console.error("Error deleting user:", error);
 
 			if (error instanceof Error && error.message.includes("Record to delete does not exist")) {
-				return res.status(404).json({ error: "Cannot find this user" });
+				res.status(404).json({ error: "Cannot find this user" });
+				return;
 			}
 
 			res.status(500).json({ error: "Error while deleting user" });
 		}
 	}
 
-	async getUserTasks(req: UpdateUserRequest, res: Response) {
+	async getUserTasks(req: UpdateUserRequest, res: Response): Promise<void> {
 		try {
 			const { id } = req.params;
 			const { type } = req.query; // 'authored' | 'assigned'
