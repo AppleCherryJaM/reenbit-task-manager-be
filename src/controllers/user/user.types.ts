@@ -3,6 +3,7 @@ import type { Request } from "express";
 export interface CreateUserInput {
 	email: string;
 	name?: string;
+	password?: string;
 }
 
 export interface UpdateUserInput {
@@ -11,7 +12,7 @@ export interface UpdateUserInput {
 }
 
 export interface UserResponse {
-	id: number;
+	id: string;
 	email: string;
 	name: string | null;
 	createdAt: Date;

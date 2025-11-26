@@ -5,34 +5,34 @@ export interface TaskCreateData {
 	title: string;
 	description?: string;
 	status?: string;
-	authorId: number;
-	assigneeIds?: number[];
+	authorId: string;
+	assigneeIds?: string[];
 }
 
 export interface TaskUpdateData {
 	title?: string;
 	description?: string;
 	status?: string;
-	assigneeIds?: number[];
+	assigneeIds?: string[];
 }
 
 export interface AssigneeOperationData {
-	userId: number;
+	userId: string;
 }
 
 // Response interfaces
 export interface UserBasicInfo {
-	id: number;
+	id: string;
 	name: string | null;
 	email: string;
 }
 
 export interface TaskWithRelations {
-	id: number;
+	id: string;
 	title: string;
 	description: string | null;
 	status: string;
-	authorId: number;
+	authorId: string;
 	createdAt: Date;
 	updatedAt: Date;
 	author: UserBasicInfo;

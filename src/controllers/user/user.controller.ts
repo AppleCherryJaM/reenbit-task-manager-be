@@ -1,210 +1,172 @@
 import type { Response } from "express";
-import { prisma } from "../../lib/prisma";
-import { type CreateUserRequest, UpdateUserInput, type UpdateUserRequest } from "./user.types";
+import { type CreateUserRequest, type UpdateUserRequest } from "./user.types";
+import { LoginRequest, RegisterRequest, AuthRequest, RefreshTokenRequest } from "./auth/auth.types";
+import { ErrorHandler } from "../../models/errors/ErrorHandler";
+import { authService } from "../../services/auth/auth.service";
+import { userService } from "../../services/user/user.service";
+
 
 class UserController {
-	async getAllUsers(req: CreateUserRequest, res: Response): Promise<void> {
-		try {
-			const users = await prisma.user.findMany({
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					_count: {
-						select: {
-							authoredTasks: true,
-							assignedTasks: true,
-						},
-					},
-				},
-				orderBy: { createdAt: "desc" },
-			});
-			res.status(200).json(users);
-		} catch (error) {
-			console.error(error);
-			res.status(500).json({ error: "Error while fetching users" });
-		}
-	}
+  async getAllUsers(req: CreateUserRequest, res: Response): Promise<void> {
+    try {
+      const users = await userService.getAllUsers();
+      res.status(200).json(users);
+    } catch (error) {
+      ErrorHandler.handleAndSendError(error, res, "Error while fetching users");
+    }
+  }
 
-	async getUserById(req: UpdateUserRequest, res: Response): Promise<void> {
-		const { id } = req.params;
-		try {
-			const user = await prisma.user.findUnique({
-				where: { id: Number.parseInt(id) },
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					authoredTasks: {
-						select: {
-							id: true,
-							title: true,
-							status: true,
-							createdAt: true,
-							assignees: {
-								select: {
-									id: true,
-									name: true,
-									email: true,
-								},
-							},
-						},
-					},
-					assignedTasks: {
-						select: {
-							id: true,
-							title: true,
-							status: true,
-							createdAt: true,
-							author: {
-								select: {
-									id: true,
-									name: true,
-									email: true,
-								},
-							},
-						},
-					},
-					_count: {
-						select: {
-							authoredTasks: true,
-							assignedTasks: true,
-						},
-					},
-				},
-			});
+  async getUserById(req: UpdateUserRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const user = await userService.getUserById(id);
 
-			if (!user) {
-				res.status(404).json({ error: "Cannot find user with this id" });
-				return;
-			}
-			res.status(200).json(user);
-		} catch (error) {
-			console.error(`Error in getUserById method: ${error}`);
-			res.status(500).json({ error: "Error in getUserById method" });
-		}
-	}
+      if (!user) {
+        res.status(404).json({ error: "Cannot find user with this id" });
+        return;
+      }
 
-	async createUser(req: CreateUserRequest, res: Response): Promise<void> {
-		const { name, email } = req.body;
-		try {
-			if (!email) {
-				res.status(400).json({ error: "Email is required" });
-				return;
-			}
+      res.status(200).json(user);
+    } catch (error) {
+      ErrorHandler.handleAndSendError(error, res, "Error while fetching user");
+    }
+  }
 
-			const user = await prisma.user.create({
-				data: { email, name },
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					createdAt: true,
-				},
-			});
+  async register(req: RegisterRequest, res: Response): Promise<void> {
+    try {
+      const { name, email, password } = req.body;
 
-			res.status(201).json(user);
-		} catch (error) {
-			console.error("Error creating user:", error);
+      if (!email || !password) {
+        res.status(400).json({ error: "Email and password are required" });
+        return;
+      }
 
-			if (error instanceof Error && error.message.includes("Unique constraint")) {
-				res.status(400).json({ error: "User with current email already exists" });
-				return;
-			}
+      if (password.length < 6) {
+        res.status(400).json({ error: "Password must be at least 6 characters long" });
+        return;
+      }
 
-			res.status(500).json({ error: "Error while user creation" });
-		}
-	}
+      const result = await authService.register({ name, email, password });
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("already exists")) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      ErrorHandler.handleAndSendError(error, res, "Error while creating user");
+    }
+  }
 
-	async updateUser(req: UpdateUserRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
-			const { email, name } = req.body;
+  async login(req: LoginRequest, res: Response): Promise<void> {
+    try {
+      const { email, password } = req.body;
 
-			const user = await prisma.user.update({
-				where: { id: Number.parseInt(id) },
-				data: {
-					...(email && { email }),
-					...(name && { name }),
-				},
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					createdAt: true,
-				},
-			});
+      if (!email || !password) {
+        res.status(400).json({ error: "Email and password are required" });
+        return;
+      }
 
-			res.json(user);
-		} catch (error) {
-			console.error("Error updating user:", error);
+      const result = await authService.login({ email, password });
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Invalid email or password")) {
+        res.status(401).json({ error: error.message });
+        return;
+      }
+      ErrorHandler.handleAndSendError(error, res, "Error while logging in");
+    }
+  }
 
-			if (error instanceof Error && error.message.includes("Record to update not found")) {
-				res.status(404).json({ error: "Cannot find this user" });
-				return;
-			}
+  async updateUser(req: UpdateUserRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { email, name } = req.body;
 
-			res.status(500).json({ error: "Error while updating user" });
-		}
-	}
+      const userExists = await userService.userExists(id);
+      if (!userExists) {
+        res.status(404).json({ error: "Cannot find this user" });
+        return;
+      }
 
-	async deleteUser(req: UpdateUserRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
+      const user = await userService.updateUser(id, { email, name });
+      res.json(user);
+    } catch (error) {
+      ErrorHandler.handleAndSendError(error, res, "Error while updating user");
+    }
+  }
 
-			await prisma.user.delete({
-				where: { id: Number.parseInt(id) },
-			});
+  async deleteUser(req: UpdateUserRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
 
-			res.status(204).send();
-		} catch (error) {
-			console.error("Error deleting user:", error);
+      const userExists = await userService.userExists(id);
+      if (!userExists) {
+        res.status(404).json({ error: "Cannot find this user" });
+        return;
+      }
 
-			if (error instanceof Error && error.message.includes("Record to delete does not exist")) {
-				res.status(404).json({ error: "Cannot find this user" });
-				return;
-			}
+      await userService.deleteUser(id);
+      res.status(204).send();
+    } catch (error) {
+      ErrorHandler.handleAndSendError(error, res, "Error while deleting user");
+    }
+  }
 
-			res.status(500).json({ error: "Error while deleting user" });
-		}
-	}
+  async getUserTasks(req: UpdateUserRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { type } = req.query as { type?: "authored" | "assigned" };
 
-	async getUserTasks(req: UpdateUserRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
-			const { type } = req.query; // 'authored' | 'assigned'
+      const tasks = await userService.getUserTasks(id, type);
+      res.json(tasks);
+    } catch (error) {
+      ErrorHandler.handleAndSendError(error, res, "Error while getting user tasks");
+    }
+  }
 
-			const whereCondition =
-				type === "authored"
-					? { authorId: Number.parseInt(id) }
-					: type === "assigned"
-						? { assignees: { some: { id: Number.parseInt(id) } } }
-						: {
-								OR: [
-									{ authorId: Number.parseInt(id) },
-									{ assignees: { some: { id: Number.parseInt(id) } } },
-								],
-							};
+  async getProfile(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: "User not authenticated" });
+        return;
+      }
 
-			const tasks = await prisma.task.findMany({
-				where: whereCondition,
-				include: {
-					author: {
-						select: { id: true, name: true, email: true },
-					},
-					assignees: {
-						select: { id: true, name: true, email: true },
-					},
-				},
-				orderBy: { createdAt: "desc" },
-			});
+      const user = await userService.getUserById(req.user.userId);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
 
-			res.json(tasks);
-		} catch (error) {
-			console.error("Error fetching user tasks:", error);
-			res.status(500).json({ error: "Error while getting user tasks" });
-		}
-	}
+      res.status(200).json(user);
+    } catch (error) {
+      ErrorHandler.handleAndSendError(error, res, "Error while fetching profile");
+    }
+  }
+
+  async refreshToken(req: RefreshTokenRequest, res: Response): Promise<void> {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        res.status(400).json({ error: "Refresh token is required" });
+        return;
+      }
+
+      const result = await authService.refreshToken(refreshToken);
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && (
+        error.message.includes("invalid token") || 
+        error.message.includes("jwt expired") ||
+        error.message.includes("Invalid refresh token")
+      )) {
+        res.status(403).json({ error: "Invalid or expired refresh token" });
+        return;
+      }
+      
+      ErrorHandler.handleAndSendError(error, res, "Error while refreshing token");
+    }
+  }
 }
 
 export default new UserController();
