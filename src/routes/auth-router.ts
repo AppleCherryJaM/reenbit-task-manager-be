@@ -1,7 +1,12 @@
 import express from "express";
 import userController from "../controllers/user/user.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
-import { validateRegister, validateLogin, validateRefreshToken, validateLogout } from "../validators/validators";
+import {
+	validateLogin,
+	validateLogout,
+	validateRefreshToken,
+	validateRegister,
+} from "../validators/validators";
 
 const authRouter = express.Router();
 

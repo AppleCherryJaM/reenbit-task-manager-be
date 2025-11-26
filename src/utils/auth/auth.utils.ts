@@ -1,3 +1,4 @@
+// utils/auth/auth.utils.ts
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -7,25 +8,19 @@ import type { JwtPayload } from "./auth.types";
 
 export class AuthUtils {
 	private static readonly SALT_ROUNDS = 12;
+	private static readonly ACCESS_TOKEN_EXPIRES_IN = "1h";
+	private static readonly REFRESH_TOKEN_EXPIRES_IN = "7d";
 
-	private static getJwtSecret(): string {
-		const secret = process.env.JWT_SECRET;
+	private static getSecret(secretName: "JWT_SECRET" | "REFRESH_TOKEN_SECRET"): string {
+		const secret = process.env[secretName];
 		if (!secret) {
-			throw new Error("JWT_SECRET is not configured in .env file");
-		}
-		return secret;
-	}
-
-	private static getRefreshTokenSecret(): string {
-		const secret = process.env.REFRESH_TOKEN_SECRET;
-		if (!secret) {
-			throw new Error("REFRESH_TOKEN_SECRET is not configured in .env file");
+			throw new Error(`${secretName} is not configured in environment variables`);
 		}
 		return secret;
 	}
 
 	static async hashPassword(password: string): Promise<string> {
-		return await bcrypt.hash(password, this.SALT_ROUNDS);
+		return await bcrypt.hash(password, AuthUtils.SALT_ROUNDS);
 	}
 
 	static async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
@@ -33,22 +28,22 @@ export class AuthUtils {
 	}
 
 	static generateAccessToken(payload: { userId: string; email: string }): string {
-		return jwt.sign(payload, this.getJwtSecret(), {
-			expiresIn: "1h",
-		} as jwt.SignOptions);
+		return jwt.sign(payload, this.getSecret("JWT_SECRET"), {
+			expiresIn: AuthUtils.ACCESS_TOKEN_EXPIRES_IN,
+		});
 	}
 
 	static generateRefreshToken(payload: { userId: string; email: string }): string {
-		return jwt.sign(payload, this.getRefreshTokenSecret(), {
-			expiresIn: "7d",
-		} as jwt.SignOptions);
+		return jwt.sign(payload, AuthUtils.getSecret("REFRESH_TOKEN_SECRET"), {
+			expiresIn: AuthUtils.REFRESH_TOKEN_EXPIRES_IN,
+		});
 	}
 
 	static verifyAccessToken(token: string): JwtPayload {
-		return jwt.verify(token, this.getJwtSecret()) as JwtPayload;
+		return jwt.verify(token, AuthUtils.getSecret("JWT_SECRET")) as JwtPayload;
 	}
 
 	static verifyRefreshToken(token: string): JwtPayload {
-		return jwt.verify(token, this.getRefreshTokenSecret()) as JwtPayload;
+		return jwt.verify(token, AuthUtils.getSecret("REFRESH_TOKEN_SECRET")) as JwtPayload;
 	}
 }

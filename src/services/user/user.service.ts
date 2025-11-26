@@ -1,3 +1,4 @@
+// services/user/user.service.ts
 import { prisma } from "../../lib/prisma";
 
 export interface UserProfile {
@@ -36,14 +37,18 @@ export interface UserWithTasks extends UserProfile {
 	}>;
 }
 
+const userSelect = {
+	id: true,
+	email: true,
+	name: true,
+	createdAt: true,
+} as const;
+
 export class UserService {
 	async getAllUsers(): Promise<UserProfile[]> {
 		return await prisma.user.findMany({
 			select: {
-				id: true,
-				email: true,
-				name: true,
-				createdAt: true,
+				...userSelect,
 				_count: {
 					select: {
 						authoredTasks: true,
@@ -59,10 +64,7 @@ export class UserService {
 		return await prisma.user.findUnique({
 			where: { id },
 			select: {
-				id: true,
-				email: true,
-				name: true,
-				createdAt: true,
+				...userSelect,
 				authoredTasks: {
 					select: {
 						id: true,
@@ -106,12 +108,7 @@ export class UserService {
 	async createUser(data: { email: string; name?: string; password: string }): Promise<UserProfile> {
 		return await prisma.user.create({
 			data,
-			select: {
-				id: true,
-				email: true,
-				name: true,
-				createdAt: true,
-			},
+			select: userSelect,
 		});
 	}
 
@@ -119,12 +116,7 @@ export class UserService {
 		return await prisma.user.update({
 			where: { id },
 			data,
-			select: {
-				id: true,
-				email: true,
-				name: true,
-				createdAt: true,
-			},
+			select: userSelect,
 		});
 	}
 
@@ -141,27 +133,29 @@ export class UserService {
 	}
 
 	async getUserTasks(userId: string, type?: "authored" | "assigned") {
-		const whereCondition =
-			type === "authored"
-				? { authorId: userId }
-				: type === "assigned"
-					? { assignees: { some: { id: userId } } }
-					: {
-							OR: [{ authorId: userId }, { assignees: { some: { id: userId } } }],
-						};
+		const whereCondition = this.buildTasksWhereCondition(userId, type);
 
 		return await prisma.task.findMany({
 			where: whereCondition,
 			include: {
-				author: {
-					select: { id: true, name: true, email: true },
-				},
-				assignees: {
-					select: { id: true, name: true, email: true },
-				},
+				author: { select: { id: true, name: true, email: true } },
+				assignees: { select: { id: true, name: true, email: true } },
 			},
 			orderBy: { createdAt: "desc" },
 		});
+	}
+
+	private buildTasksWhereCondition(userId: string, type?: "authored" | "assigned") {
+		switch (type) {
+			case "authored":
+				return { authorId: userId };
+			case "assigned":
+				return { assignees: { some: { id: userId } } };
+			default:
+				return {
+					OR: [{ authorId: userId }, { assignees: { some: { id: userId } } }],
+				};
+		}
 	}
 
 	async userExists(id: string): Promise<boolean> {

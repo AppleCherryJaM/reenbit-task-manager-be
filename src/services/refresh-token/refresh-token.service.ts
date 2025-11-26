@@ -1,13 +1,10 @@
+// services/refresh-token/refresh-token.service.ts
 import { prisma } from "../../lib/prisma";
 
 export class RefreshTokenService {
 	async saveRefreshToken(userId: string, token: string, expiresAt: Date): Promise<void> {
 		await prisma.refreshToken.create({
-			data: {
-				token,
-				userId,
-				expiresAt,
-			},
+			data: { token, userId, expiresAt },
 		});
 	}
 
@@ -16,11 +13,7 @@ export class RefreshTokenService {
 			where: { token },
 			include: {
 				user: {
-					select: {
-						id: true,
-						email: true,
-						name: true,
-					},
+					select: { id: true, email: true, name: true },
 				},
 			},
 		});
@@ -31,17 +24,17 @@ export class RefreshTokenService {
 			where: { token },
 		});
 	}
+
 	async revokeAllUserTokens(userId: string): Promise<void> {
 		await prisma.refreshToken.deleteMany({
 			where: { userId },
 		});
 	}
+
 	async cleanupExpiredTokens(): Promise<void> {
 		await prisma.refreshToken.deleteMany({
 			where: {
-				expiresAt: {
-					lt: new Date(),
-				},
+				expiresAt: { lt: new Date() },
 			},
 		});
 	}

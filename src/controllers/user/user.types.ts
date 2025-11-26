@@ -1,3 +1,4 @@
+// controllers/user.types.ts
 import type { Request } from "express";
 
 export interface CreateUserInput {
@@ -18,13 +19,17 @@ export interface UserResponse {
 	createdAt: Date;
 }
 
+// Request interfaces
+export interface UserRequest extends Request {
+	params: {
+		id: string;
+	};
+}
+
 export interface CreateUserRequest extends Request {
 	body: CreateUserInput;
 }
 
-export interface UpdateUserRequest extends Request {
+export interface UpdateUserRequest extends UserRequest {
 	body: UpdateUserInput;
-	params: {
-		id: string;
-	};
 }

@@ -1,10 +1,11 @@
+// middlewares/auth.middleware.ts
 import type { NextFunction, Response } from "express";
 import type { AuthRequest, JwtPayload } from "../utils/auth/auth.types";
 import { AuthUtils } from "../utils/auth/auth.utils";
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
-	const authHeader = req.headers["authorization"];
-	const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+	const authHeader = req.headers.authorization;
+	const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
 	if (!token) {
 		res.status(401).json({ error: "Access token required" });
@@ -12,7 +13,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 	}
 
 	try {
-		const decoded: JwtPayload = AuthUtils.verifyAccessToken(token);
+		const decoded = AuthUtils.verifyAccessToken(token);
 		req.user = {
 			userId: decoded.userId,
 			email: decoded.email,

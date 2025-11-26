@@ -1,7 +1,7 @@
 import express from "express";
 import userController from "../controllers/user/user.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
-import { validateUserId, validateUserTasks, validateUpdateUser } from "../validators/validators";
+import { validateUpdateUser, validateUserId, validateUserTasks } from "../validators/validators";
 
 const userRouter = express.Router();
 

@@ -1,9 +1,41 @@
+// services/auth/auth.service.ts
 import type { AuthResponse } from "../../utils/auth/auth.types";
 import { AuthUtils } from "../../utils/auth/auth.utils";
 import { refreshTokenService } from "../refresh-token/refresh-token.service";
 import { userService } from "../user/user.service";
 
+interface TokenPayload {
+	userId: string;
+	email: string;
+}
+
 export class AuthService {
+	private async generateTokens(user: TokenPayload) {
+		const accessToken = AuthUtils.generateAccessToken(user);
+		const refreshToken = AuthUtils.generateRefreshToken(user);
+
+		const expiresAt = new Date();
+		expiresAt.setDate(expiresAt.getDate() + 7);
+
+		await refreshTokenService.saveRefreshToken(user.userId, refreshToken, expiresAt);
+
+		return { accessToken, refreshToken };
+	}
+
+	private async validateUserCredentials(email: string, password: string) {
+		const user = await userService.findUserByEmail(email);
+		if (!user) {
+			throw new Error("Invalid email or password");
+		}
+
+		const isPasswordValid = await AuthUtils.verifyPassword(password, user.password);
+		if (!isPasswordValid) {
+			throw new Error("Invalid email or password");
+		}
+
+		return user;
+	}
+
 	async register(userData: {
 		name?: string;
 		email: string;
@@ -17,30 +49,15 @@ export class AuthService {
 		}
 
 		const hashedPassword = await AuthUtils.hashPassword(password);
+		const user = await userService.createUser({ email, name, password: hashedPassword });
 
-		const user = await userService.createUser({
-			email,
-			name,
-			password: hashedPassword,
-		});
-
-		const accessToken = AuthUtils.generateAccessToken({
+		const { accessToken, refreshToken } = await this.generateTokens({
 			userId: user.id,
 			email: user.email,
 		});
-
-		const refreshToken = AuthUtils.generateRefreshToken({
-			userId: user.id,
-			email: user.email,
-		});
-
-		// Сохраняем refresh token в базе
-		const expiresAt = new Date();
-		expiresAt.setDate(expiresAt.getDate() + 7); // 7 дней
-		await refreshTokenService.saveRefreshToken(user.id, refreshToken, expiresAt);
 
 		return {
-			user,
+			user: { id: user.id, email: user.email, name: user.name },
 			accessToken,
 			refreshToken,
 		};
@@ -49,37 +66,14 @@ export class AuthService {
 	async login(credentials: { email: string; password: string }): Promise<AuthResponse> {
 		const { email, password } = credentials;
 
-		const user = await userService.findUserByEmail(email);
-		if (!user) {
-			throw new Error("Invalid email or password");
-		}
-
-		const isPasswordValid = await AuthUtils.verifyPassword(password, user.password);
-		if (!isPasswordValid) {
-			throw new Error("Invalid email or password");
-		}
-
-		const accessToken = AuthUtils.generateAccessToken({
+		const user = await this.validateUserCredentials(email, password);
+		const { accessToken, refreshToken } = await this.generateTokens({
 			userId: user.id,
 			email: user.email,
 		});
-
-		const refreshToken = AuthUtils.generateRefreshToken({
-			userId: user.id,
-			email: user.email,
-		});
-
-		// Сохраняем refresh token в базе
-		const expiresAt = new Date();
-		expiresAt.setDate(expiresAt.getDate() + 7); // 7 дней
-		await refreshTokenService.saveRefreshToken(user.id, refreshToken, expiresAt);
 
 		return {
-			user: {
-				id: user.id,
-				email: user.email,
-				name: user.name,
-			},
+			user: { id: user.id, email: user.email, name: user.name },
 			accessToken,
 			refreshToken,
 		};
@@ -94,53 +88,34 @@ export class AuthService {
 			throw new Error("Refresh token is required");
 		}
 
-		// Проверяем что токен есть в базе и не отозван
 		const storedToken = await refreshTokenService.findRefreshToken(refreshToken);
 		if (!storedToken) {
 			throw new Error("Invalid refresh token");
 		}
 
-		// Проверяем не истек ли токен
 		if (storedToken.expiresAt < new Date()) {
-			// Удаляем просроченный токен
 			await refreshTokenService.revokeRefreshToken(refreshToken);
 			throw new Error("Refresh token expired");
 		}
 
 		const decoded = AuthUtils.verifyRefreshToken(refreshToken);
-
 		const user = await userService.getUserById(decoded.userId);
 
 		if (!user) {
-			throw new Error("Invalid refresh token");
+			throw new Error("User not found");
 		}
 
-		// Отзываем старый токен
+		// Rotate refresh token
 		await refreshTokenService.revokeRefreshToken(refreshToken);
-
-		const newAccessToken = AuthUtils.generateAccessToken({
+		const tokens = await this.generateTokens({
 			userId: user.id,
 			email: user.email,
 		});
-
-		const newRefreshToken = AuthUtils.generateRefreshToken({
-			userId: user.id,
-			email: user.email,
-		});
-
-		// Сохраняем новый токен
-		const expiresAt = new Date();
-		expiresAt.setDate(expiresAt.getDate() + 7);
-		await refreshTokenService.saveRefreshToken(user.id, newRefreshToken, expiresAt);
 
 		return {
-			accessToken: newAccessToken,
-			refreshToken: newRefreshToken,
-			user: {
-				id: user.id,
-				email: user.email,
-				name: user.name,
-			},
+			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
+			user: { id: user.id, email: user.email, name: user.name },
 		};
 	}
 
@@ -148,13 +123,10 @@ export class AuthService {
 		if (!refreshToken) {
 			throw new Error("Refresh token is required");
 		}
-
-		// Удаляем конкретный токен
 		await refreshTokenService.revokeRefreshToken(refreshToken);
 	}
 
 	async logoutAll(userId: string): Promise<void> {
-		// Удаляем все токены пользователя
 		await refreshTokenService.revokeAllUserTokens(userId);
 	}
 }
