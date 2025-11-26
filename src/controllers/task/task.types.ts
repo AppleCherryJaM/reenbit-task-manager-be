@@ -1,62 +1,66 @@
-import { Request } from 'express';
+import type { Request } from "express";
 
 // Core data interfaces
 export interface TaskCreateData {
-  title: string;
-  description?: string;
-  status?: string;
-  authorId: number;
-  assigneeIds?: number[];
+	title: string;
+	description?: string;
+	status?: string;
+	authorId: number;
+	assigneeIds?: number[];
 }
 
 export interface TaskUpdateData {
-  title?: string;
-  description?: string;
-  status?: string;
-  assigneeIds?: number[];
+	title?: string;
+	description?: string;
+	status?: string;
+	assigneeIds?: number[];
 }
 
 export interface AssigneeOperationData {
-  userId: number;
+	userId: number;
 }
 
 // Response interfaces
 export interface UserBasicInfo {
-  id: number;
-  name: string | null;
-  email: string;
+	id: number;
+	name: string | null;
+	email: string;
 }
 
 export interface TaskWithRelations {
-  id: number;
-  title: string;
-  description: string | null;
-  status: string;
-  authorId: number;
-  createdAt: Date;
-  updatedAt: Date;
-  author: UserBasicInfo;
-  assignees: UserBasicInfo[];
+	id: number;
+	title: string;
+	description: string | null;
+	status: string;
+	authorId: number;
+	createdAt: Date;
+	updatedAt: Date;
+	author: UserBasicInfo;
+	assignees: UserBasicInfo[];
 }
 
-// Extended Request types
 export interface CreateTaskRequest extends Request {
-  body: TaskCreateData;
+	body: TaskCreateData;
 }
 
 export interface UpdateTaskRequest extends Request {
-  body: TaskUpdateData;
-  params: { id: string };
+	body: TaskUpdateData;
+	params: { id: string };
 }
 
 export interface TaskParamsRequest extends Request {
-  params: { id: string };
+	params: { id: string };
 }
 
 export interface AssigneeOperationRequest extends Request {
-  body: AssigneeOperationData;
-  params: { id: string };
+	body: AssigneeOperationData;
+	params: { id: string };
 }
 
-// Aliases for compatibility
-export type TaskResponse = Omit<TaskWithRelations, 'author' | 'assignees'>;
+export enum TaskStatus {
+	PENDING = "pending",
+	IN_PROGRESS = "in_progress",
+	COMPLETED = "completed",
+}
+
+export type TaskResponse = Omit<TaskWithRelations, "author" | "assignees">;
