@@ -1,14 +1,15 @@
 import express from "express";
 import userController from "../controllers/user/user.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
+import { validateRegister, validateLogin, validateRefreshToken, validateLogout } from "../validators/validators";
 
 const authRouter = express.Router();
 
-// Public routes - не требуют аутентификации
-authRouter.post("/register", userController.register);
-authRouter.post("/login", userController.login);
-authRouter.post("/refresh-token", userController.refreshToken);
-authRouter.post("/logout", userController.logout);
+// Public routes
+authRouter.post("/register", validateRegister, userController.register);
+authRouter.post("/login", validateLogin, userController.login);
+authRouter.post("/refresh-token", validateRefreshToken, userController.refreshToken);
+authRouter.post("/logout", validateLogout, userController.logout);
 
 // Protected routes
 authRouter.post("/logout-all", authenticateToken, userController.logoutAll);
