@@ -1,6 +1,6 @@
 import type { NextFunction, Response } from "express";
-import type { AuthRequest, JwtPayload } from "../controllers/user/auth/auth.types";
-import { AuthUtils } from "../controllers/user/auth/auth.utils";
+import type { AuthRequest, JwtPayload } from "../utils/auth/auth.types";
+import { AuthUtils } from "../utils/auth/auth.utils";
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
 	const authHeader = req.headers["authorization"];
@@ -15,7 +15,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 		const decoded: JwtPayload = AuthUtils.verifyAccessToken(token);
 		req.user = {
 			userId: decoded.userId,
-			email: decoded.email
+			email: decoded.email,
 		};
 		next();
 	} catch (error) {

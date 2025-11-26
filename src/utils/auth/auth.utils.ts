@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
 import bcrypt from "bcryptjs";
@@ -33,14 +33,14 @@ export class AuthUtils {
 	}
 
 	static generateAccessToken(payload: { userId: string; email: string }): string {
-		return jwt.sign(payload, this.getJwtSecret(), { 
-			expiresIn: "1h" 
+		return jwt.sign(payload, this.getJwtSecret(), {
+			expiresIn: "1h",
 		} as jwt.SignOptions);
 	}
 
 	static generateRefreshToken(payload: { userId: string; email: string }): string {
-		return jwt.sign(payload, this.getRefreshTokenSecret(), { 
-			expiresIn: "7d" 
+		return jwt.sign(payload, this.getRefreshTokenSecret(), {
+			expiresIn: "7d",
 		} as jwt.SignOptions);
 	}
 
