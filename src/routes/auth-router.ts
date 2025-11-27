@@ -1,8 +1,9 @@
 import express from "express";
-import userController from "../controllers/user/user.controller";
-import { authenticateToken } from "../middlewares/auth.middleware";
-import { validateLogout, validateRefreshToken } from "../validators/auth.validator";
-import { validateLogin, validateRegister } from "../validators/user.validator";
+
+import userController from "@/controllers/user/user.controller";
+import { authenticateToken } from "@/middlewares/auth.middleware";
+import { validateLogout, validateRefreshToken } from "@/validators/auth.validator";
+import { validateLogin, validateRegister } from "@/validators/user.validator";
 
 const authRouter = express.Router();
 

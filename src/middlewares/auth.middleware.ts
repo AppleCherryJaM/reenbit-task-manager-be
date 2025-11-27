@@ -1,6 +1,7 @@
 import type { NextFunction, Response } from "express";
-import type { AuthRequest } from "../utils/auth/auth.types";
-import { AuthUtils } from "../utils/auth/auth.utils";
+
+import type { AuthRequest } from "@/utils/auth/auth.types";
+import { AuthUtils } from "@/utils/auth/auth.utils";
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
 	const authHeader = req.headers.authorization;

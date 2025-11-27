@@ -1,6 +1,6 @@
 // base.controller.ts
+import { ErrorHandler } from "@/models/errors/ErrorHandler";
 import type { Response } from "express";
-import { ErrorHandler } from "../models/errors/ErrorHandler";
 
 export abstract class BaseController {
 	static async handleRequest<T>(

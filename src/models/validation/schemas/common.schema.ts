@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Common schemas
 export const idSchema = z.string().uuid("Invalid ID format");
 export const emailSchema = z.string().email("Invalid email address");
 export const nameSchema = z.string().min(2, "Name must be at least 2 characters").optional();

@@ -1,5 +1,5 @@
-// services/user/user.service.ts
-import { prisma } from "../../lib/prisma";
+import type { UserTasksType } from "@/controllers/user/user.types";
+import { prisma } from "@/lib/prisma";
 
 export interface UserProfile {
 	id: string;
@@ -132,7 +132,7 @@ export class UserService {
 		});
 	}
 
-	async getUserTasks(userId: string, type?: "authored" | "assigned") {
+	async getUserTasks(userId: string, type?: UserTasksType) {
 		const whereCondition = this.buildTasksWhereCondition(userId, type);
 
 		return await prisma.task.findMany({
@@ -145,7 +145,7 @@ export class UserService {
 		});
 	}
 
-	private buildTasksWhereCondition(userId: string, type?: "authored" | "assigned") {
+	private buildTasksWhereCondition(userId: string, type?: UserTasksType) {
 		switch (type) {
 			case "authored":
 				return { authorId: userId };

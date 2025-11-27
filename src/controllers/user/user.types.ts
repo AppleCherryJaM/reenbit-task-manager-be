@@ -1,4 +1,3 @@
-// controllers/user.types.ts
 import type { Request } from "express";
 
 export interface CreateUserInput {
@@ -19,7 +18,6 @@ export interface UserResponse {
 	createdAt: Date;
 }
 
-// Request interfaces
 export interface UserRequest extends Request {
 	params: {
 		id: string;
@@ -33,3 +31,5 @@ export interface CreateUserRequest extends Request {
 export interface UpdateUserRequest extends UserRequest {
 	body: UpdateUserInput;
 }
+
+export type UserTasksType = "authored" | "assigned";

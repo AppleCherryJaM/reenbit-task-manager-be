@@ -1,9 +1,16 @@
 import * as dotenv from "dotenv";
+
+dotenv.config();
+
+if (process.env.NODE_ENV !== "production") {
+	require("tsconfig-paths/register");
+} else {
+	require("./register-aliases");
+}
+
 import express, { type Application } from "express";
 
 import router from "./routes/main-router";
-
-dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;

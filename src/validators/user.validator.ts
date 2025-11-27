@@ -1,11 +1,11 @@
-import { validateBody, validateParams, validateQuery } from "../middlewares/validation.middleware";
+import { validateBody, validateParams, validateQuery } from "@/middlewares/validation.middleware";
 import {
 	loginSchema,
 	registerSchema,
 	updateUserSchema,
 	userIdSchema,
 	userTasksQuerySchema,
-} from "../models/validation/validation.schema";
+} from "@/models/validation/validation.schema";
 
 export const validateRegister = validateBody(registerSchema);
 export const validateLogin = validateBody(loginSchema);

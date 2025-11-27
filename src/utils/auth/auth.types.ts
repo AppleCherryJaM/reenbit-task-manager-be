@@ -1,4 +1,3 @@
-// utils/auth/auth.types.ts
 import type { Request } from "express";
 
 export interface JwtPayload {
@@ -13,7 +12,6 @@ export interface AuthUser {
 	email: string;
 }
 
-// Request interfaces
 export interface AuthRequest extends Request {
 	user?: AuthUser;
 }
@@ -45,7 +43,6 @@ export interface LogoutRequest extends Request {
 	};
 }
 
-// Response interfaces
 export interface AuthResponse {
 	user: {
 		id: string;

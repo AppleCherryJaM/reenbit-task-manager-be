@@ -1,16 +1,18 @@
 import type { Response } from "express";
-import { ErrorHandler } from "../../models/errors/ErrorHandler";
-import { authService } from "../../services/auth/auth.service";
-import { userService } from "../../services/user/user.service";
+
+import { BaseController } from "../base.controller";
+import type { CreateUserRequest, UpdateUserRequest, UserTasksType } from "./user.types";
+
+import { ErrorHandler } from "@/models/errors/ErrorHandler";
+import { authService } from "@/services/auth/auth.service";
+import { userService } from "@/services/user/user.service";
 import type {
 	AuthRequest,
 	LoginRequest,
 	LogoutRequest,
 	RefreshTokenRequest,
 	RegisterRequest,
-} from "../../utils/auth/auth.types";
-import { BaseController } from "../base.controller";
-import type { CreateUserRequest, UpdateUserRequest } from "./user.types";
+} from "@/utils/auth/auth.types";
 
 class UserController {
 	async getAllUsers(req: CreateUserRequest, res: Response): Promise<void> {
@@ -92,7 +94,7 @@ class UserController {
 
 	async getUserTasks(req: UpdateUserRequest, res: Response): Promise<void> {
 		const { id } = req.params;
-		const { type } = req.query as { type?: "authored" | "assigned" };
+		const { type } = req.query as { type?: UserTasksType };
 
 		await BaseController.handleRequest(
 			res,

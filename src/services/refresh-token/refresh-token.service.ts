@@ -1,5 +1,4 @@
-// services/refresh-token/refresh-token.service.ts
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class RefreshTokenService {
 	async saveRefreshToken(userId: string, token: string, expiresAt: Date): Promise<void> {

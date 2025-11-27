@@ -1,4 +1,3 @@
-// middlewares/validation.middleware.ts
 import type { NextFunction, Request, Response } from "express";
 import { ZodError, type z } from "zod";
 

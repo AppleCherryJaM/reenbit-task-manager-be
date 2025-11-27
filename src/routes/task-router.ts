@@ -1,6 +1,7 @@
 import express from "express";
-import taskController from "../controllers/task/task.controller";
-import { validateTaskId, validateUpdateTask } from "../validators/task.validator";
+
+import taskController from "@/controllers/task/task.controller";
+import { validateTaskId, validateUpdateTask } from "@/validators/task.validator";
 
 const taskRouter = express.Router();
 

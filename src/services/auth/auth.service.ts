@@ -1,6 +1,5 @@
-// services/auth/auth.service.ts
-import type { AuthResponse } from "../../utils/auth/auth.types";
-import { AuthUtils } from "../../utils/auth/auth.utils";
+import type { AuthResponse } from "@/utils/auth/auth.types";
+import { AuthUtils } from "@/utils/auth/auth.utils";
 import { refreshTokenService } from "../refresh-token/refresh-token.service";
 import { userService } from "../user/user.service";
 
@@ -89,6 +88,7 @@ export class AuthService {
 		}
 
 		const storedToken = await refreshTokenService.findRefreshToken(refreshToken);
+
 		if (!storedToken) {
 			throw new Error("Invalid refresh token");
 		}
@@ -105,7 +105,6 @@ export class AuthService {
 			throw new Error("User not found");
 		}
 
-		// Rotate refresh token
 		await refreshTokenService.revokeRefreshToken(refreshToken);
 		const tokens = await this.generateTokens({
 			userId: user.id,
