@@ -1,4 +1,3 @@
-// controllers/task.types.ts
 import type { Request } from "express";
 
 export interface TaskCreateData {
@@ -34,7 +33,6 @@ export interface TaskWithRelations {
 	assignees: UserBasicInfo[];
 }
 
-// Request interfaces
 export interface TaskRequest extends Request {
 	params: { id: string };
 }

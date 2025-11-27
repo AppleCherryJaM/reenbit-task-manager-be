@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-// models/errors/ErrorHandler.ts
 import type { Response } from "express";
 
 export interface AppError {
@@ -7,15 +6,6 @@ export interface AppError {
 	message: string;
 	code?: string;
 }
-
-type ErrorCode =
-	| "NOT_FOUND"
-	| "UNAUTHORIZED"
-	| "FORBIDDEN"
-	| "BAD_REQUEST"
-	| "CONFLICT"
-	| "VALIDATION_ERROR"
-	| "DATABASE_ERROR";
 
 export class ErrorHandler {
 	private static readonly ERROR_MAP: Record<string, AppError> = {
@@ -42,7 +32,6 @@ export class ErrorHandler {
 			return { status: 400, message: "Invalid data format", code: "VALIDATION_ERROR" };
 		}
 
-		// Остальные Prisma ошибки
 		if (
 			error instanceof Prisma.PrismaClientUnknownRequestError ||
 			error instanceof Prisma.PrismaClientInitializationError ||

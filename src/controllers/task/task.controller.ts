@@ -1,5 +1,5 @@
-// task.controller.ts
 import type { Response } from "express";
+
 import { prisma } from "../../lib/prisma";
 import { BaseController } from "../base.controller";
 import type { CreateTaskRequest, TaskRequest, UpdateTaskRequest } from "./task.types";
@@ -159,9 +159,15 @@ class TaskController {
 					}
 
 					const updateData: any = {};
-					if (title) { updateData.title = title; }
-					if (description !== undefined) { updateData.description = description; }
-					if (status) { updateData.status = status as any; }
+					if (title) {
+						updateData.title = title;
+					}
+					if (description !== undefined) {
+						updateData.description = description;
+					}
+					if (status) {
+						updateData.status = status as any;
+					}
 
 					if (assigneeIds) {
 						updateData.assignees = {

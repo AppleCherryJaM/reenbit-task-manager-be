@@ -1,6 +1,5 @@
-// middlewares/auth.middleware.ts
 import type { NextFunction, Response } from "express";
-import type { AuthRequest, JwtPayload } from "../utils/auth/auth.types";
+import type { AuthRequest } from "../utils/auth/auth.types";
 import { AuthUtils } from "../utils/auth/auth.utils";
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {

@@ -9,7 +9,19 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		// "baseUrl": ".",
+		// "paths": {
+		//   "@/*": ["./src/*"],
+		//   "@controllers/*": ["./src/controllers/*"],
+		//   "@models/*": ["./src/models/*"],
+		//   "@services/*": ["./src/services/*"],
+		//   "@utils/*": ["./src/utils/*"],
+		//   "@lib/*": ["./src/lib/*"],
+		// 	"@validators/*": ["./src/validators/*"],
+		// 	"@validation-schemas/*": ["./src/models/validation/schemas/*"]
+		// },
+		"ignoreDeprecations": "6.0"
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules", "build"]

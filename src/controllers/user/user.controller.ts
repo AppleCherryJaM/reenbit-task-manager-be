@@ -1,4 +1,3 @@
-// user.controller.ts
 import type { Response } from "express";
 import { ErrorHandler } from "../../models/errors/ErrorHandler";
 import { authService } from "../../services/auth/auth.service";
