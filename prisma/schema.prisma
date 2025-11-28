@@ -14,14 +14,14 @@ enum TaskStatus {
 }
 
 enum TaskPriority {
-  Low
-  Medium
-  High
+  low
+  medium
+  high
 }
 
 enum UserRole {
-  USER
-  ADMIN
+  user
+  admin
 }
 
 model User {
