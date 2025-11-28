@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TaskStatus } from "../../../controllers/task/task.types";
+import { TaskStatus } from "@/controllers/task/task.types";
 import { idSchema } from "./common.schema";
 
 export const createTaskSchema = z.object({

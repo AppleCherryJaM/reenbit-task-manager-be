@@ -1,6 +1,8 @@
 import type { Response } from "express";
 
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@/lib/prisma";
+
+import { TaskErrorMessages } from "@/models/errors/ErrorMessages";
 import { BaseController } from "../base.controller";
 import type { CreateTaskRequest, TaskRequest, UpdateTaskRequest } from "./task.types";
 import { TaskStatus } from "./task.types";
@@ -35,7 +37,7 @@ class TaskController {
 					include: TaskController.taskIncludeConfig,
 					orderBy: { createdAt: "desc" },
 				}),
-			"Error while getting tasks"
+			TaskErrorMessages.GET_TASK_ERROR
 		);
 	}
 
@@ -51,13 +53,13 @@ class TaskController {
 				});
 
 				if (!task) {
-					BaseController.sendNotFound(res, "Task not found");
+					BaseController.sendNotFound(res, TaskErrorMessages.TASK_NOT_FOUND);
 					return null;
 				}
 
 				return task;
 			},
-			"Error while getting task"
+			TaskErrorMessages.GET_TASK_ERROR
 		);
 	}
 
@@ -94,7 +96,7 @@ class TaskController {
 					});
 				});
 			},
-			"Error while creating task"
+			TaskErrorMessages.CREATE_TASK_ERROR
 		);
 	}
 
@@ -109,7 +111,7 @@ class TaskController {
 		});
 
 		if (!authorExists) {
-			throw new Error("Author not found");
+			throw new Error(TaskErrorMessages.AUTHOR_NOT_FOUND);
 		}
 
 		if (assigneeIds && assigneeIds.length > 0) {
@@ -118,7 +120,7 @@ class TaskController {
 			});
 
 			if (assigneesCount !== assigneeIds.length) {
-				throw new Error("One or more assignees not found");
+				throw new Error(TaskErrorMessages.ASSIGNEES_NOT_FOUND);
 			}
 		}
 	}
@@ -145,7 +147,7 @@ class TaskController {
 					});
 
 					if (!taskExists) {
-						throw new Error("Task not found");
+						throw new Error(TaskErrorMessages.TASK_NOT_FOUND);
 					}
 
 					if (assigneeIds) {
@@ -154,17 +156,20 @@ class TaskController {
 						});
 
 						if (assigneesCount !== assigneeIds.length) {
-							throw new Error("One or more assignees not found");
+							throw new Error(TaskErrorMessages.ASSIGNEES_NOT_FOUND);
 						}
 					}
 
 					const updateData: any = {};
+
 					if (title) {
 						updateData.title = title;
 					}
-					if (description !== undefined) {
+
+					if (description !== undefined && description !== null) {
 						updateData.description = description;
 					}
+
 					if (status) {
 						updateData.status = status as any;
 					}
@@ -182,7 +187,7 @@ class TaskController {
 					});
 				});
 			},
-			"Error while updating task"
+			TaskErrorMessages.UPDATE_TASK_ERROR
 		);
 	}
 
@@ -199,7 +204,7 @@ class TaskController {
 					});
 
 					if (!taskExists) {
-						throw new Error("Task not found");
+						throw new Error(TaskErrorMessages.TASK_NOT_FOUND);
 					}
 
 					await tx.task.delete({
@@ -209,7 +214,7 @@ class TaskController {
 
 				return { message: "Task deleted successfully" };
 			},
-			"Error while deleting task"
+			TaskErrorMessages.DELETE_TASK_ERROR
 		);
 	}
 }

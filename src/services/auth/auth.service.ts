@@ -1,3 +1,4 @@
+import { RefreshTokenErrorMessages, UserErrorMessages } from "@/models/errors/ErrorMessages";
 import type { AuthResponse } from "@/utils/auth/auth.types";
 import { AuthUtils } from "@/utils/auth/auth.utils";
 import { refreshTokenService } from "../refresh-token/refresh-token.service";
@@ -8,13 +9,17 @@ interface TokenPayload {
 	email: string;
 }
 
+const TOKEN_EXPIRES_DAYS = process.env.TOKEN_EXPIRES_DAYS
+	? Number.parseInt(process.env.TOKEN_EXPIRES_DAYS, 10)
+	: 7;
+
 export class AuthService {
 	private async generateTokens(user: TokenPayload) {
 		const accessToken = AuthUtils.generateAccessToken(user);
 		const refreshToken = AuthUtils.generateRefreshToken(user);
 
 		const expiresAt = new Date();
-		expiresAt.setDate(expiresAt.getDate() + 7);
+		expiresAt.setDate(expiresAt.getDate() + TOKEN_EXPIRES_DAYS);
 
 		await refreshTokenService.saveRefreshToken(user.userId, refreshToken, expiresAt);
 
@@ -23,13 +28,15 @@ export class AuthService {
 
 	private async validateUserCredentials(email: string, password: string) {
 		const user = await userService.findUserByEmail(email);
+
 		if (!user) {
-			throw new Error("Invalid email or password");
+			throw new Error(UserErrorMessages.INVALID_EMAIL_OR_PASSWORD);
 		}
 
 		const isPasswordValid = await AuthUtils.verifyPassword(password, user.password);
+
 		if (!isPasswordValid) {
-			throw new Error("Invalid email or password");
+			throw new Error(UserErrorMessages.INVALID_EMAIL_OR_PASSWORD);
 		}
 
 		return user;
@@ -43,8 +50,9 @@ export class AuthService {
 		const { name, email, password } = userData;
 
 		const existingUser = await userService.findUserByEmail(email);
+
 		if (existingUser) {
-			throw new Error("User with this email already exists");
+			throw new Error(UserErrorMessages.EMAIL_ALREADY_EXISTS);
 		}
 
 		const hashedPassword = await AuthUtils.hashPassword(password);
@@ -84,25 +92,25 @@ export class AuthService {
 		user: { id: string; email: string; name: string | null };
 	}> {
 		if (!refreshToken) {
-			throw new Error("Refresh token is required");
+			throw new Error(RefreshTokenErrorMessages.REQUIRED_REFRESH_TOKEN);
 		}
 
 		const storedToken = await refreshTokenService.findRefreshToken(refreshToken);
 
 		if (!storedToken) {
-			throw new Error("Invalid refresh token");
+			throw new Error(RefreshTokenErrorMessages.INVALID_REFRESH_TOKEN);
 		}
 
 		if (storedToken.expiresAt < new Date()) {
 			await refreshTokenService.revokeRefreshToken(refreshToken);
-			throw new Error("Refresh token expired");
+			throw new Error(RefreshTokenErrorMessages.EXPIRED_REFRESH_TOKEN);
 		}
 
 		const decoded = AuthUtils.verifyRefreshToken(refreshToken);
 		const user = await userService.getUserById(decoded.userId);
 
 		if (!user) {
-			throw new Error("User not found");
+			throw new Error(UserErrorMessages.USER_NOT_FOUND);
 		}
 
 		await refreshTokenService.revokeRefreshToken(refreshToken);
@@ -120,7 +128,7 @@ export class AuthService {
 
 	async logout(refreshToken: string): Promise<void> {
 		if (!refreshToken) {
-			throw new Error("Refresh token is required");
+			throw new Error(RefreshTokenErrorMessages.REQUIRED_REFRESH_TOKEN);
 		}
 		await refreshTokenService.revokeRefreshToken(refreshToken);
 	}

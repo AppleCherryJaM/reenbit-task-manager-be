@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError, type z } from "zod";
+import type { AsyncRequestHandler } from "./validation.middleware.types";
 
 const handleValidationError = (error: ZodError, res: Response): void => {
 	res.status(400).json({
@@ -8,7 +9,7 @@ const handleValidationError = (error: ZodError, res: Response): void => {
 	});
 };
 
-export const validateBody = (schema: z.ZodSchema<any>) => {
+export const validateBody = <T>(schema: z.ZodSchema<T>): AsyncRequestHandler => {
 	return async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			req.body = await schema.parseAsync(req.body);
@@ -23,7 +24,7 @@ export const validateBody = (schema: z.ZodSchema<any>) => {
 	};
 };
 
-export const validateParams = (schema: z.ZodSchema<any>) => {
+export const validateParams = <T>(schema: z.ZodSchema<T>): AsyncRequestHandler => {
 	return async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			await schema.parseAsync(req.params);
@@ -38,7 +39,7 @@ export const validateParams = (schema: z.ZodSchema<any>) => {
 	};
 };
 
-export const validateQuery = (schema: z.ZodSchema<any>) => {
+export const validateQuery = <T>(schema: z.ZodSchema<T>): AsyncRequestHandler => {
 	return async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			await schema.parseAsync(req.query);
