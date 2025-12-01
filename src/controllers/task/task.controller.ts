@@ -1,24 +1,14 @@
 import type { Response } from "express";
-import { prisma } from "../../lib/prisma";
-import { ErrorHandler } from "../../models/errors/ErrorHandler";
-import type {
-	CreateTaskRequest,
-	TaskParamsRequest,
-	UpdateTaskRequest,
-	UserBasicInfo,
-} from "./task.types";
+
+import { prisma } from "@/lib/prisma";
+
+import { TaskErrorMessages } from "@/models/errors/ErrorMessages";
+import { BaseController } from "../base.controller";
+import type { CreateTaskRequest, TaskRequest, UpdateTaskRequest } from "./task.types";
 import { TaskStatus } from "./task.types";
 
 class TaskController {
-	constructor() {
-		this.getTasks = this.getTasks.bind(this);
-		this.getTaskById = this.getTaskById.bind(this);
-		this.createTask = this.createTask.bind(this);
-		this.updateTask = this.updateTask.bind(this);
-		this.deleteTask = this.deleteTask.bind(this);
-	}
-
-	private readonly taskIncludeConfig = {
+	private static readonly taskIncludeConfig = {
 		author: {
 			select: {
 				id: true,
@@ -39,137 +29,193 @@ class TaskController {
 		return Object.values(TaskStatus).includes(status as TaskStatus);
 	}
 
-	private async findTaskById(id: number): Promise<any> {
-		return await prisma.task.findUnique({
-			where: { id },
-			include: this.taskIncludeConfig,
-		});
-	}
-
 	async getTasks(req: CreateTaskRequest, res: Response): Promise<void> {
-		try {
-			const tasks = await prisma.task.findMany({
-				include: this.taskIncludeConfig,
-				orderBy: { createdAt: "desc" },
-			});
-			res.json(tasks);
-		} catch (error) {
-			ErrorHandler.handleAndSendError(error, res, "Error while getting tasks");
-		}
+		await BaseController.handleRequest(
+			res,
+			() =>
+				prisma.task.findMany({
+					include: TaskController.taskIncludeConfig,
+					orderBy: { createdAt: "desc" },
+				}),
+			TaskErrorMessages.GET_TASK_ERROR
+		);
 	}
 
-	async getTaskById(req: TaskParamsRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
-			const task = await this.findTaskById(Number.parseInt(id));
+	async getTaskById(req: TaskRequest, res: Response): Promise<void> {
+		const { id } = req.params;
 
-			if (!task) {
-				res.status(404).json({ error: "Task not found" });
-				return;
-			}
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				const task = await prisma.task.findUnique({
+					where: { id },
+					include: TaskController.taskIncludeConfig,
+				});
 
-			res.json(task);
-		} catch (error) {
-			ErrorHandler.handleAndSendError(error, res, "Error while getting task");
-		}
+				if (!task) {
+					BaseController.sendNotFound(res, TaskErrorMessages.TASK_NOT_FOUND);
+					return null;
+				}
+
+				return task;
+			},
+			TaskErrorMessages.GET_TASK_ERROR
+		);
 	}
 
 	async createTask(req: CreateTaskRequest, res: Response): Promise<void> {
-		try {
-			const { title, description, status, authorId, assigneeIds } = req.body;
+		const { title, description, status, authorId, assigneeIds } = req.body;
 
-			if (!title) {
-				res.status(400).json({ error: "Title is required" });
-				return;
-			}
-			if (!authorId) {
-				res.status(400).json({ error: "Author ID is required" });
-				return;
-			}
+		if (!title || !authorId) {
+			BaseController.sendBadRequest(res, "Title and author ID are required");
+			return;
+		}
 
-			const taskData = {
-				title,
-				description,
-				status: status || TaskStatus.PENDING,
-				authorId,
-				...(assigneeIds &&
-					assigneeIds.length > 0 && {
-						assignees: {
-							connect: assigneeIds.map((id: number) => ({ id })),
-						},
-					}),
-			};
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				return await prisma.$transaction(async (tx) => {
+					await this.validateUsersExist(tx, authorId, assigneeIds);
 
-			const task = await prisma.task.create({
-				data: taskData,
-				include: this.taskIncludeConfig,
+					const taskData = {
+						title,
+						description: description || null,
+						status: (status || TaskStatus.PENDING) as any,
+						author: { connect: { id: authorId } },
+						...(assigneeIds &&
+							assigneeIds.length > 0 && {
+								assignees: {
+									connect: assigneeIds.map((id: string) => ({ id })),
+								},
+							}),
+					};
+
+					return await tx.task.create({
+						data: taskData as any,
+						include: TaskController.taskIncludeConfig,
+					});
+				});
+			},
+			TaskErrorMessages.CREATE_TASK_ERROR
+		);
+	}
+
+	private async validateUsersExist(
+		tx: any,
+		authorId: string,
+		assigneeIds?: string[]
+	): Promise<void> {
+		const authorExists = await tx.user.findUnique({
+			where: { id: authorId },
+			select: { id: true },
+		});
+
+		if (!authorExists) {
+			throw new Error(TaskErrorMessages.AUTHOR_NOT_FOUND);
+		}
+
+		if (assigneeIds && assigneeIds.length > 0) {
+			const assigneesCount = await tx.user.count({
+				where: { id: { in: assigneeIds } },
 			});
 
-			res.status(201).json(task);
-		} catch (error) {
-			ErrorHandler.handleAndSendError(error, res, "Error while creating task");
+			if (assigneesCount !== assigneeIds.length) {
+				throw new Error(TaskErrorMessages.ASSIGNEES_NOT_FOUND);
+			}
 		}
 	}
 
 	async updateTask(req: UpdateTaskRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
-			const { title, description, status, assigneeIds } = req.body;
+		const { id } = req.params;
+		const { title, description, status, assigneeIds } = req.body;
 
-			if (status && !this.isValidStatus(status)) {
-				res.status(400).json({
-					error: `Invalid status. Allowed values: ${Object.values(TaskStatus).join(", ")}`,
-				});
-				return;
-			}
-
-			const updateData: {
-				title?: string;
-				description?: string | null;
-				status?: string;
-				assignees?: { set: { id: number }[] };
-			} = {};
-
-			if (title) {
-				updateData.title = title;
-			}
-			if (description !== undefined) {
-				updateData.description = description;
-			}
-			if (status) {
-				updateData.status = status;
-			}
-
-			if (assigneeIds) {
-				updateData.assignees = {
-					set: assigneeIds.map((id: number) => ({ id })),
-				};
-			}
-
-			const task = await prisma.task.update({
-				where: { id: Number.parseInt(id) },
-				data: updateData,
-				include: this.taskIncludeConfig,
-			});
-
-			res.json(task);
-		} catch (error) {
-			ErrorHandler.handleAndSendError(error, res, "Error while updating task");
+		if (status && !this.isValidStatus(status)) {
+			BaseController.sendBadRequest(
+				res,
+				`Invalid status. Allowed values: ${Object.values(TaskStatus).join(", ")}`
+			);
+			return;
 		}
+
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				return await prisma.$transaction(async (tx) => {
+					const taskExists = await tx.task.findUnique({
+						where: { id },
+						select: { id: true },
+					});
+
+					if (!taskExists) {
+						throw new Error(TaskErrorMessages.TASK_NOT_FOUND);
+					}
+
+					if (assigneeIds) {
+						const assigneesCount = await tx.user.count({
+							where: { id: { in: assigneeIds } },
+						});
+
+						if (assigneesCount !== assigneeIds.length) {
+							throw new Error(TaskErrorMessages.ASSIGNEES_NOT_FOUND);
+						}
+					}
+
+					const updateData: any = {};
+
+					if (title) {
+						updateData.title = title;
+					}
+
+					if (description !== undefined && description !== null) {
+						updateData.description = description;
+					}
+
+					if (status) {
+						updateData.status = status as any;
+					}
+
+					if (assigneeIds) {
+						updateData.assignees = {
+							set: assigneeIds.map((id: string) => ({ id })),
+						};
+					}
+
+					return await tx.task.update({
+						where: { id },
+						data: updateData as any,
+						include: TaskController.taskIncludeConfig,
+					});
+				});
+			},
+			TaskErrorMessages.UPDATE_TASK_ERROR
+		);
 	}
 
-	async deleteTask(req: TaskParamsRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
+	async deleteTask(req: TaskRequest, res: Response): Promise<void> {
+		const { id } = req.params;
 
-			await prisma.task.delete({
-				where: { id: Number.parseInt(id) },
-			});
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				await prisma.$transaction(async (tx) => {
+					const taskExists = await tx.task.findUnique({
+						where: { id },
+						select: { id: true },
+					});
 
-			res.status(204).send();
-		} catch (error) {
-			ErrorHandler.handleAndSendError(error, res, "Error while deleting task");
-		}
+					if (!taskExists) {
+						throw new Error(TaskErrorMessages.TASK_NOT_FOUND);
+					}
+
+					await tx.task.delete({
+						where: { id },
+					});
+				});
+
+				return { message: "Task deleted successfully" };
+			},
+			TaskErrorMessages.DELETE_TASK_ERROR
+		);
 	}
 }
 

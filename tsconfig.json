@@ -9,7 +9,19 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"baseUrl": "./src",
+		"paths": {
+			"@/*": ["./*"],
+			"@controllers/*": ["./controllers/*"],
+			"@models/*": ["./models/*"],
+			"@services/*": ["./services/*"],
+			"@utils/*": ["./utils/*"],
+			"@lib/*": ["./lib/*"],
+			"@validators/*": ["./validators/*"],
+			"@validation/*": ["./models/validation/*"]
+		},
+		"ignoreDeprecations": "6.0"
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules", "build"]

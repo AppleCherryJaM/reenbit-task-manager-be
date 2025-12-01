@@ -1,210 +1,175 @@
 import type { Response } from "express";
-import { prisma } from "../../lib/prisma";
-import { type CreateUserRequest, UpdateUserInput, type UpdateUserRequest } from "./user.types";
+
+import { BaseController } from "../base.controller";
+import type { CreateUserRequest, UpdateUserRequest, UserTasksType } from "./user.types";
+
+import { ErrorHandler } from "@/models/errors/ErrorHandler";
+import { RefreshTokenErrorMessages, UserErrorMessages } from "@/models/errors/ErrorMessages";
+import { authService } from "@/services/auth/auth.service";
+import { userService } from "@/services/user/user.service";
+import type {
+	AuthRequest,
+	LoginRequest,
+	LogoutRequest,
+	RefreshTokenRequest,
+	RegisterRequest,
+} from "@/utils/auth/auth.types";
 
 class UserController {
 	async getAllUsers(req: CreateUserRequest, res: Response): Promise<void> {
-		try {
-			const users = await prisma.user.findMany({
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					_count: {
-						select: {
-							authoredTasks: true,
-							assignedTasks: true,
-						},
-					},
-				},
-				orderBy: { createdAt: "desc" },
-			});
-			res.status(200).json(users);
-		} catch (error) {
-			console.error(error);
-			res.status(500).json({ error: "Error while fetching users" });
-		}
+		await BaseController.handleRequest(
+			res,
+			() => userService.getAllUsers(),
+			UserErrorMessages.FETCH_USER_ERROR
+		);
 	}
 
 	async getUserById(req: UpdateUserRequest, res: Response): Promise<void> {
 		const { id } = req.params;
-		try {
-			const user = await prisma.user.findUnique({
-				where: { id: Number.parseInt(id) },
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					authoredTasks: {
-						select: {
-							id: true,
-							title: true,
-							status: true,
-							createdAt: true,
-							assignees: {
-								select: {
-									id: true,
-									name: true,
-									email: true,
-								},
-							},
-						},
-					},
-					assignedTasks: {
-						select: {
-							id: true,
-							title: true,
-							status: true,
-							createdAt: true,
-							author: {
-								select: {
-									id: true,
-									name: true,
-									email: true,
-								},
-							},
-						},
-					},
-					_count: {
-						select: {
-							authoredTasks: true,
-							assignedTasks: true,
-						},
-					},
-				},
-			});
 
-			if (!user) {
-				res.status(404).json({ error: "Cannot find user with this id" });
-				return;
-			}
-			res.status(200).json(user);
-		} catch (error) {
-			console.error(`Error in getUserById method: ${error}`);
-			res.status(500).json({ error: "Error in getUserById method" });
-		}
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				const user = await userService.getUserById(id);
+				if (!user) {
+					BaseController.sendNotFound(res, UserErrorMessages.USER_NOT_FOUND);
+					return null;
+				}
+				return user;
+			},
+			UserErrorMessages.FETCH_USER_ERROR
+		);
 	}
 
-	async createUser(req: CreateUserRequest, res: Response): Promise<void> {
-		const { name, email } = req.body;
-		try {
-			if (!email) {
-				res.status(400).json({ error: "Email is required" });
-				return;
-			}
+	async register(req: RegisterRequest, res: Response): Promise<void> {
+		await BaseController.handleRequest(
+			res,
+			() => authService.register(req.body),
+			UserErrorMessages.CREATE_USER_ERROR
+		);
+	}
 
-			const user = await prisma.user.create({
-				data: { email, name },
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					createdAt: true,
-				},
-			});
-
-			res.status(201).json(user);
-		} catch (error) {
-			console.error("Error creating user:", error);
-
-			if (error instanceof Error && error.message.includes("Unique constraint")) {
-				res.status(400).json({ error: "User with current email already exists" });
-				return;
-			}
-
-			res.status(500).json({ error: "Error while user creation" });
-		}
+	async login(req: LoginRequest, res: Response): Promise<void> {
+		await BaseController.handleRequest(
+			res,
+			() => authService.login(req.body),
+			UserErrorMessages.LOGIN_USER_ERROR
+		);
 	}
 
 	async updateUser(req: UpdateUserRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
-			const { email, name } = req.body;
+		const { id } = req.params;
+		const { email, name } = req.body;
 
-			const user = await prisma.user.update({
-				where: { id: Number.parseInt(id) },
-				data: {
-					...(email && { email }),
-					...(name && { name }),
-				},
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					createdAt: true,
-				},
-			});
-
-			res.json(user);
-		} catch (error) {
-			console.error("Error updating user:", error);
-
-			if (error instanceof Error && error.message.includes("Record to update not found")) {
-				res.status(404).json({ error: "Cannot find this user" });
-				return;
-			}
-
-			res.status(500).json({ error: "Error while updating user" });
-		}
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				const userExists = await userService.userExists(id);
+				if (!userExists) {
+					BaseController.sendNotFound(res, UserErrorMessages.USER_NOT_FOUND);
+					return null;
+				}
+				return await userService.updateUser(id, { email, name });
+			},
+			UserErrorMessages.UPDATE_USER_ERROR
+		);
 	}
 
 	async deleteUser(req: UpdateUserRequest, res: Response): Promise<void> {
-		try {
-			const { id } = req.params;
+		const { id } = req.params;
 
-			await prisma.user.delete({
-				where: { id: Number.parseInt(id) },
-			});
-
-			res.status(204).send();
-		} catch (error) {
-			console.error("Error deleting user:", error);
-
-			if (error instanceof Error && error.message.includes("Record to delete does not exist")) {
-				res.status(404).json({ error: "Cannot find this user" });
-				return;
-			}
-
-			res.status(500).json({ error: "Error while deleting user" });
-		}
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				const userExists = await userService.userExists(id);
+				if (!userExists) {
+					BaseController.sendNotFound(res, UserErrorMessages.USER_NOT_FOUND);
+					return null;
+				}
+				await userService.deleteUser(id);
+				return { message: "User deleted successfully" };
+			},
+			UserErrorMessages.DELETE_USER_ERROR
+		);
 	}
 
 	async getUserTasks(req: UpdateUserRequest, res: Response): Promise<void> {
+		const { id } = req.params;
+		const { type } = req.query as { type?: UserTasksType };
+
+		await BaseController.handleRequest(
+			res,
+			() => userService.getUserTasks(id, type),
+			UserErrorMessages.GET_USER_TASK_ERROR
+		);
+	}
+
+	async getProfile(req: AuthRequest, res: Response): Promise<void> {
 		try {
-			const { id } = req.params;
-			const { type } = req.query; // 'authored' | 'assigned'
+			if (!req.user) {
+				BaseController.sendUnauthorized(res, UserErrorMessages.USER_NOT_AUTHENTICATED);
+				return;
+			}
 
-			const whereCondition =
-				type === "authored"
-					? { authorId: Number.parseInt(id) }
-					: type === "assigned"
-						? { assignees: { some: { id: Number.parseInt(id) } } }
-						: {
-								OR: [
-									{ authorId: Number.parseInt(id) },
-									{ assignees: { some: { id: Number.parseInt(id) } } },
-								],
-							};
+			const user = await userService.getUserById(req.user.userId);
+			if (!user) {
+				BaseController.sendNotFound(res, UserErrorMessages.USER_NOT_FOUND);
+				return;
+			}
 
-			const tasks = await prisma.task.findMany({
-				where: whereCondition,
-				include: {
-					author: {
-						select: { id: true, name: true, email: true },
-					},
-					assignees: {
-						select: { id: true, name: true, email: true },
-					},
-				},
-				orderBy: { createdAt: "desc" },
-			});
-
-			res.json(tasks);
+			res.status(200).json(user);
 		} catch (error) {
-			console.error("Error fetching user tasks:", error);
-			res.status(500).json({ error: "Error while getting user tasks" });
+			ErrorHandler.handleAndSendError(error, res, UserErrorMessages.FETCH_USER_ERROR);
+		}
+	}
+
+	async refreshToken(req: RefreshTokenRequest, res: Response): Promise<void> {
+		const { refreshToken } = req.body;
+
+		if (!refreshToken) {
+			BaseController.sendBadRequest(res, "Refresh token is required");
+			return;
+		}
+
+		await BaseController.handleRequest(
+			res,
+			() => authService.refreshToken(refreshToken),
+			RefreshTokenErrorMessages.REFRESH_TOKEN_ERROR
+		);
+	}
+
+	async logout(req: LogoutRequest, res: Response): Promise<void> {
+		const { refreshToken } = req.body;
+
+		if (!refreshToken) {
+			BaseController.sendBadRequest(res, RefreshTokenErrorMessages.REQUIRED_REFRESH_TOKEN);
+			return;
+		}
+
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				await authService.logout(refreshToken);
+				return { message: "Successfully logged out" };
+			},
+			UserErrorMessages.LOGOUT_USER_ERROR
+		);
+	}
+
+	async logoutAll(req: AuthRequest, res: Response): Promise<void> {
+		try {
+			if (!req.user) {
+				BaseController.sendUnauthorized(res);
+				return;
+			}
+
+			await authService.logoutAll(req.user.userId);
+			res.status(200).json({ message: "Successfully logged out from all devices" });
+		} catch (error) {
+			ErrorHandler.handleAndSendError(error, res, UserErrorMessages.LOGOUT_USER_ERROR);
 		}
 	}
 }
 
-export default new UserController();
+export const userController = new UserController();
+export default userController;

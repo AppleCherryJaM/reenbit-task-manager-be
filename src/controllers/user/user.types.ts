@@ -3,6 +3,7 @@ import type { Request } from "express";
 export interface CreateUserInput {
 	email: string;
 	name?: string;
+	password?: string;
 }
 
 export interface UpdateUserInput {
@@ -11,19 +12,24 @@ export interface UpdateUserInput {
 }
 
 export interface UserResponse {
-	id: number;
+	id: string;
 	email: string;
 	name: string | null;
 	createdAt: Date;
+}
+
+export interface UserRequest extends Request {
+	params: {
+		id: string;
+	};
 }
 
 export interface CreateUserRequest extends Request {
 	body: CreateUserInput;
 }
 
-export interface UpdateUserRequest extends Request {
+export interface UpdateUserRequest extends UserRequest {
 	body: UpdateUserInput;
-	params: {
-		id: string;
-	};
 }
+
+export type UserTasksType = "authored" | "assigned";

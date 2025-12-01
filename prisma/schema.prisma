@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -7,27 +7,65 @@ datasource db {
   provider = "postgresql"
 }
 
+enum TaskStatus {
+  pending
+  in_progress
+  completed
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+enum UserRole {
+  user
+  admin
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   email     String   @unique
   name      String?
+  password  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  refreshTokens RefreshToken[]
+  authoredTasks Task[] @relation("TaskAuthor")
+  assignedTasks Task[] @relation("TaskAssignees")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
   
-  authoredTasks Task[] @relation("TaskAuthor")
-  
-  assignedTasks Task[] @relation("TaskAssignees")
+  @@index([token])
+  @@map("refresh_tokens")
 }
 
 model Task {
-  id          Int      @id @default(autoincrement())
+  id          String       @id @default(uuid())
   title       String
   description String?
-  status      String   @default("pending") // pending, in_progress, completed
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      TaskStatus   @default(pending)
+  priority    TaskPriority @default(Medium)
+  deadline    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   
-  authorId   Int
-  author     User     @relation("TaskAuthor", fields: [authorId], references: [id])
+  authorId   String
+  author     User   @relation("TaskAuthor", fields: [authorId], references: [id])
   
   assignees User[] @relation("TaskAssignees")
+
+  @@map("tasks")
 }
