@@ -25,7 +25,7 @@ class TaskController {
 		},
 	};
 
-	private isValidStatus(status: string): boolean {
+	private static isValidStatus(status: string): boolean {
 		return Object.values(TaskStatus).includes(status as TaskStatus);
 	}
 
@@ -75,7 +75,7 @@ class TaskController {
 			res,
 			async () => {
 				return await prisma.$transaction(async (tx) => {
-					await this.validateUsersExist(tx, authorId, assigneeIds);
+					await TaskController.validateUsersExist(tx, authorId, assigneeIds);
 
 					const taskData = {
 						title,
@@ -100,7 +100,7 @@ class TaskController {
 		);
 	}
 
-	private async validateUsersExist(
+	private static async validateUsersExist(
 		tx: any,
 		authorId: string,
 		assigneeIds?: string[]
@@ -129,7 +129,7 @@ class TaskController {
 		const { id } = req.params;
 		const { title, description, status, assigneeIds } = req.body;
 
-		if (status && !this.isValidStatus(status)) {
+		if (status && !TaskController.isValidStatus(status)) {
 			BaseController.sendBadRequest(
 				res,
 				`Invalid status. Allowed values: ${Object.values(TaskStatus).join(", ")}`
