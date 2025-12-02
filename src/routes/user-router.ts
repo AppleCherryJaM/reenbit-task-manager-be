@@ -6,15 +6,13 @@ import { validateUpdateUser, validateUserId, validateUserTasks } from "@/validat
 
 const userRouter = express.Router();
 
-userRouter.use(authenticateToken);
-
-userRouter.get("/profile", userController.getProfile);
 userRouter.get("/", userController.getAllUsers);
-userRouter.get("/:id", validateUserId, userController.getUserById);
-userRouter.get("/:id/tasks", validateUserId, validateUserTasks, userController.getUserTasks);
+userRouter.get("/profile", authenticateToken, userController.getProfile);
+userRouter.get("/:id", authenticateToken, validateUserId, userController.getUserById);
+userRouter.get("/:id/tasks", authenticateToken, validateUserId, validateUserTasks, userController.getUserTasks);
 
-userRouter.put("/:id", validateUserId, validateUpdateUser, userController.updateUser);
+userRouter.put("/:id", authenticateToken, validateUserId, validateUpdateUser, userController.updateUser);
 
-userRouter.delete("/:id", userController.deleteUser);
+userRouter.delete("/:id", authenticateToken, userController.deleteUser);
 
 export default userRouter;
