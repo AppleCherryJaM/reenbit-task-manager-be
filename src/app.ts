@@ -8,8 +8,8 @@ if (process.env.NODE_ENV !== "production") {
 	require("./register-aliases");
 }
 
+import cors from "cors";
 import express, { type Application } from "express";
-import cors from 'cors';
 
 import router from "./routes/main-router";
 
@@ -20,12 +20,14 @@ const FE_URL = process.env.CORS_FRONTEND_URL;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-  origin: FE_URL,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(
+	cors({
+		origin: FE_URL,
+		credentials: true,
+		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+		allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+	})
+);
 
 app.use("/api", router);
 
