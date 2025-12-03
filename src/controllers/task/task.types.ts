@@ -4,6 +4,8 @@ export interface TaskCreateData {
 	title: string;
 	description?: string;
 	status?: TaskStatus;
+	priority?: "low" | "medium" | "high";
+	deadline?: string | null;
 	authorId: string;
 	assigneeIds?: string[];
 }
@@ -12,6 +14,8 @@ export interface TaskUpdateData {
 	title?: string;
 	description?: string | null;
 	status?: TaskStatus;
+	priority?: "low" | "medium" | "high";
+	deadline?: string | null;
 	assigneeIds?: string[];
 }
 

@@ -25,6 +25,12 @@ class TaskController {
 		},
 	};
 
+	private static readonly priorityMap = {
+		low: "Low",
+		medium: "Medium",
+		high: "High",
+	} as const;
+
 	private static isValidStatus(status: string): boolean {
 		return Object.values(TaskStatus).includes(status as TaskStatus);
 	}
@@ -64,7 +70,7 @@ class TaskController {
 	}
 
 	async createTask(req: CreateTaskRequest, res: Response): Promise<void> {
-		const { title, description, status, authorId, assigneeIds } = req.body;
+		const { title, description, status, priority, deadline, authorId, assigneeIds } = req.body;
 
 		if (!title || !authorId) {
 			BaseController.sendBadRequest(res, "Title and author ID are required");
@@ -77,11 +83,24 @@ class TaskController {
 				return await prisma.$transaction(async (tx) => {
 					await TaskController.validateUsersExist(tx, authorId, assigneeIds);
 
+					let deadlineDate = null;
+
+					if (deadline && deadline.trim() !== "") {
+						deadlineDate = new Date(deadline);
+						if (isNaN(deadlineDate.getTime())) {
+							throw new Error("Invalid deadline format");
+						}
+					}
+
 					const taskData = {
 						title,
 						description: description || null,
 						status: (status || TaskStatus.PENDING) as any,
 						author: { connect: { id: authorId } },
+						priority: TaskController.priorityMap[
+							(priority || "medium").toLowerCase() as keyof typeof TaskController.priorityMap
+						] as any,
+						deadline: deadlineDate,
 						...(assigneeIds &&
 							assigneeIds.length > 0 && {
 								assignees: {
@@ -127,7 +146,7 @@ class TaskController {
 
 	async updateTask(req: UpdateTaskRequest, res: Response): Promise<void> {
 		const { id } = req.params;
-		const { title, description, status, assigneeIds } = req.body;
+		const { title, description, status, priority, deadline, assigneeIds } = req.body;
 
 		if (status && !TaskController.isValidStatus(status)) {
 			BaseController.sendBadRequest(
@@ -172,6 +191,24 @@ class TaskController {
 
 					if (status) {
 						updateData.status = status as any;
+					}
+
+					if (priority) {
+						updateData.priority = TaskController.priorityMap[
+							(priority || "medium").toLowerCase() as keyof typeof TaskController.priorityMap
+						] as any;
+					}
+
+					if (deadline !== undefined) {
+						if (deadline === null || deadline === "") {
+							updateData.deadline = null;
+						} else if (deadline.trim() !== "") {
+							const deadlineDate = new Date(deadline);
+							if (isNaN(deadlineDate.getTime())) {
+								throw new Error("Invalid deadline format");
+							}
+							updateData.deadline = deadlineDate;
+						}
 					}
 
 					if (assigneeIds) {
