@@ -4,10 +4,21 @@ import { prisma } from "@/lib/prisma";
 
 import { TaskErrorMessages } from "@/models/errors/ErrorMessages";
 import { BaseController } from "../base.controller";
-import type { CreateTaskRequest, TaskRequest, UpdateTaskRequest } from "./task.types";
-import { TaskStatus } from "./task.types";
+import {
+	type CreateTaskRequest,
+	type GetTasksRequest,
+	type TaskRequest,
+	TaskStatus,
+	type UpdateTaskRequest,
+} from "./task.types";
 
 class TaskController {
+	private static readonly priorityReverseMap = {
+		Low: "low",
+		Medium: "medium",
+		High: "high",
+	} as const;
+
 	private static readonly taskIncludeConfig = {
 		author: {
 			select: {
@@ -30,21 +41,131 @@ class TaskController {
 		medium: "Medium",
 		high: "High",
 	} as const;
+	priorityReverseMap: any;
 
 	private static isValidStatus(status: string): boolean {
 		return Object.values(TaskStatus).includes(status as TaskStatus);
 	}
 
-	async getTasks(req: CreateTaskRequest, res: Response): Promise<void> {
-		await BaseController.handleRequest(
-			res,
-			() =>
+	private static getStringParam(param: string | string[] | undefined): string | undefined {
+		if (param === undefined) return undefined;
+		return Array.isArray(param) ? param[0] : param;
+	}
+
+	// Вспомогательный метод для безопасного получения числовых параметров
+	private static getNumberParam(
+		param: string | string[] | undefined,
+		defaultValue: number
+	): number {
+		if (param === undefined) return defaultValue;
+
+		const str = Array.isArray(param) ? param[0] : param;
+		const num = Number.parseInt(str, 10);
+		return isNaN(num) ? defaultValue : num;
+	}
+
+	async getTasks(req: GetTasksRequest, res: Response): Promise<void> {
+		try {
+			// Безопасно извлекаем параметры
+			const status = TaskController.getStringParam(req.query.status);
+			const priority = TaskController.getStringParam(req.query.priority);
+			const authorId = TaskController.getStringParam(req.query.authorId);
+			const assigneeId = TaskController.getStringParam(req.query.assigneeId);
+			const search = TaskController.getStringParam(req.query.search);
+			const sortBy = TaskController.getStringParam(req.query.sortBy) || "createdAt";
+			const sortOrder = TaskController.getStringParam(req.query.sortOrder) || "desc";
+			const startDate = TaskController.getStringParam(req.query.startDate);
+			const endDate = TaskController.getStringParam(req.query.endDate);
+
+			const pageNum = TaskController.getNumberParam(req.query.page, 1);
+			const limitNum = TaskController.getNumberParam(req.query.limit, 10);
+
+			const where: any = {};
+
+			if (status && TaskController.isValidStatus(status)) {
+				where.status = status;
+			}
+
+			if (priority && priority.toLowerCase() in TaskController.priorityMap) {
+				where.priority =
+					TaskController.priorityMap[
+						priority.toLowerCase() as keyof typeof TaskController.priorityMap
+					];
+			}
+
+			if (authorId) {
+				where.authorId = authorId;
+			}
+
+			if (assigneeId) {
+				where.assignees = {
+					some: { id: assigneeId },
+				};
+			}
+
+			if (search) {
+				where.OR = [
+					{ title: { contains: search, mode: "insensitive" } },
+					{ description: { contains: search, mode: "insensitive" } },
+				];
+			}
+
+			if (startDate || endDate) {
+				where.createdAt = {};
+				if (startDate) {
+					const date = new Date(startDate);
+					if (!isNaN(date.getTime())) {
+						where.createdAt.gte = date;
+					}
+				}
+				if (endDate) {
+					const date = new Date(endDate);
+					if (!isNaN(date.getTime())) {
+						where.createdAt.lte = date;
+					}
+				}
+			}
+
+			// Настраиваем сортировку
+			const orderBy: any = {};
+			const validSortFields = ["title", "priority", "deadline", "updatedAt", "createdAt"];
+
+			if (validSortFields.includes(sortBy)) {
+				orderBy[sortBy] = sortOrder;
+			} else {
+				orderBy.createdAt = sortOrder;
+			}
+
+			// Пагинация
+			const skip = (pageNum - 1) * limitNum;
+
+			// Выполняем запросы
+			const [total, tasks] = await Promise.all([
+				prisma.task.count({ where }),
 				prisma.task.findMany({
+					where,
 					include: TaskController.taskIncludeConfig,
-					orderBy: { createdAt: "desc" },
+					orderBy,
+					skip,
+					take: limitNum,
 				}),
-			TaskErrorMessages.GET_TASK_ERROR
-		);
+			]);
+
+			// Отправляем результат
+			BaseController.sendSuccess(res, {
+				tasks,
+				pagination: {
+					total,
+					page: pageNum,
+					limit: limitNum,
+					totalPages: Math.ceil(total / limitNum),
+					hasNext: pageNum < Math.ceil(total / limitNum),
+					hasPrev: pageNum > 1,
+				},
+			});
+		} catch (error) {
+			BaseController.sendError(res, TaskErrorMessages.GET_TASK_ERROR, error);
+		}
 	}
 
 	async getTaskById(req: TaskRequest, res: Response): Promise<void> {
