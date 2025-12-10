@@ -3,6 +3,7 @@ import type { Response } from "express";
 import { prisma } from "@/lib/prisma";
 
 import { TaskErrorMessages } from "@/models/errors/ErrorMessages";
+import { getNumberParam } from "@/utils/task/task.utils";
 import { BaseController } from "../base.controller";
 import {
 	type CreateTaskRequest,
@@ -13,12 +14,6 @@ import {
 } from "./task.types";
 
 class TaskController {
-	private static readonly priorityReverseMap = {
-		Low: "low",
-		Medium: "medium",
-		High: "high",
-	} as const;
-
 	private static readonly taskIncludeConfig = {
 		author: {
 			select: {
@@ -41,32 +36,19 @@ class TaskController {
 		medium: "Medium",
 		high: "High",
 	} as const;
-	priorityReverseMap: any;
 
 	private static isValidStatus(status: string): boolean {
 		return Object.values(TaskStatus).includes(status as TaskStatus);
 	}
 
 	private static getStringParam(param: string | string[] | undefined): string | undefined {
-		if (param === undefined) return undefined;
+		if (!param) return undefined;
+
 		return Array.isArray(param) ? param[0] : param;
-	}
-
-	// Вспомогательный метод для безопасного получения числовых параметров
-	private static getNumberParam(
-		param: string | string[] | undefined,
-		defaultValue: number
-	): number {
-		if (param === undefined) return defaultValue;
-
-		const str = Array.isArray(param) ? param[0] : param;
-		const num = Number.parseInt(str, 10);
-		return isNaN(num) ? defaultValue : num;
 	}
 
 	async getTasks(req: GetTasksRequest, res: Response): Promise<void> {
 		try {
-			// Безопасно извлекаем параметры
 			const status = TaskController.getStringParam(req.query.status);
 			const priority = TaskController.getStringParam(req.query.priority);
 			const authorId = TaskController.getStringParam(req.query.authorId);
@@ -77,8 +59,8 @@ class TaskController {
 			const startDate = TaskController.getStringParam(req.query.startDate);
 			const endDate = TaskController.getStringParam(req.query.endDate);
 
-			const pageNum = TaskController.getNumberParam(req.query.page, 1);
-			const limitNum = TaskController.getNumberParam(req.query.limit, 10);
+			const pageNum = getNumberParam(req.query.page, 1);
+			const limitNum = getNumberParam(req.query.limit, 10);
 
 			const where: any = {};
 
@@ -126,7 +108,6 @@ class TaskController {
 				}
 			}
 
-			// Настраиваем сортировку
 			const orderBy: any = {};
 			const validSortFields = ["title", "priority", "deadline", "updatedAt", "createdAt"];
 
@@ -136,10 +117,8 @@ class TaskController {
 				orderBy.createdAt = sortOrder;
 			}
 
-			// Пагинация
 			const skip = (pageNum - 1) * limitNum;
 
-			// Выполняем запросы
 			const [total, tasks] = await Promise.all([
 				prisma.task.count({ where }),
 				prisma.task.findMany({
@@ -151,7 +130,6 @@ class TaskController {
 				}),
 			]);
 
-			// Отправляем результат
 			BaseController.sendSuccess(res, {
 				tasks,
 				pagination: {

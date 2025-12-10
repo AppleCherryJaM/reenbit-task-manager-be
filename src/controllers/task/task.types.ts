@@ -1,11 +1,15 @@
 import type { Request } from "express";
 import type { ParsedQs } from "qs";
 
+type SortType = "createdAt" | "updatedAt" | "title" | "priority" | "deadline";
+type SortOrder = "asc" | "desc";
+type PriorityType = "low" | "medium" | "high";
+
 export interface TaskCreateData {
 	title: string;
 	description?: string;
 	status?: TaskStatus;
-	priority?: "low" | "medium" | "high";
+	priority?: PriorityType;
 	deadline?: string | null;
 	authorId: string;
 	assigneeIds?: string[];
@@ -15,19 +19,19 @@ export interface TaskUpdateData {
 	title?: string;
 	description?: string | null;
 	status?: TaskStatus;
-	priority?: "low" | "medium" | "high";
+	priority?: PriorityType;
 	deadline?: string | null;
 	assigneeIds?: string[];
 }
 
 export interface TaskQueryParams extends ParsedQs {
 	status?: TaskStatus | string;
-	priority?: "low" | "medium" | "high" | string;
+	priority?: TaskPriority;
 	authorId?: string;
 	assigneeId?: string;
 	search?: string;
-	sortBy?: "createdAt" | "updatedAt" | "title" | "priority" | "deadline" | string;
-	sortOrder?: "asc" | "desc" | string;
+	sortBy?: SortType;
+	sortOrder?: SortOrder;
 	page?: string | string[];
 	limit?: string | string[];
 	startDate?: string;
@@ -79,10 +83,4 @@ export interface TaskWithRelations {
 	updatedAt: Date;
 	author: UserBasicInfo;
 	assignees: UserBasicInfo[];
-}
-
-export enum priorityMap {
-	low = "Low",
-	medium = "Medium",
-	high = "High",
 }
