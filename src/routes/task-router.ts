@@ -6,6 +6,7 @@ import { validateTaskId, validateUpdateTask } from "@/validators/task.validator"
 const taskRouter = express.Router();
 
 taskRouter.post("/new", taskController.createTask);
+taskRouter.post("/bulk", taskController.createTasksBulk.bind(taskController));
 
 taskRouter.get("/", taskController.getTasks);
 taskRouter.get("/:id", validateTaskId, taskController.getTaskById);

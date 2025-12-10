@@ -7,6 +7,10 @@ export enum TaskErrorMessages {
 	DELETE_TASK_ERROR = "Error while creating task",
 	INVALID_TASK_STATUS = "invalid task status",
 	ASSIGNEES_NOT_FOUND = "One or more assignees not found",
+	ARRAY_IS_REQUIRED = "Tasks array is required",
+	BATCH_LIMIT = "Maximum 50 tasks per batch",
+	BATCH_TASK_FAILURE = "Failed to create tasks batch",
+	REQUIRED_FIELDS = "Title and author ID are required"
 }
 
 export enum UserErrorMessages {
@@ -20,7 +24,7 @@ export enum UserErrorMessages {
 	INVALID_EMAIL_OR_PASSWORD = "Invalid email or password",
 	EMAIL_ALREADY_EXISTS = "User with this email already exists",
 	GET_USER_TASK_ERROR = "Error while getting user tasks",
-	USER_NOT_AUTHENTICATED = "User not authenticated",
+	USER_NOT_AUTHENTICATED = "User not authenticated"
 }
 
 export enum RefreshTokenErrorMessages {
@@ -29,3 +33,5 @@ export enum RefreshTokenErrorMessages {
 	REQUIRED_REFRESH_TOKEN = "Refresh token is required",
 	REFRESH_TOKEN_ERROR = "Error while refreshing token",
 }
+
+export const UNKNOWN_ERROR = "Unknown error";
