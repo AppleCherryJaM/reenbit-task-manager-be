@@ -2,16 +2,19 @@ import type { Response } from "express";
 
 import { prisma } from "@/lib/prisma";
 
-import { TaskErrorMessages } from "@/models/errors/ErrorMessages";
+import { TaskErrorMessages, UNKNOWN_ERROR } from "@/models/errors/ErrorMessages";
 import { getNumberParam } from "@/utils/task/task.utils";
 import { BaseController } from "../base.controller";
 import {
+	BulkCreateTaskRequest,
 	type CreateTaskRequest,
 	type GetTasksRequest,
 	type TaskRequest,
 	TaskStatus,
 	type UpdateTaskRequest,
 } from "./task.types";
+
+const limit = 50;
 
 class TaskController {
 	private static readonly taskIncludeConfig = {
@@ -215,6 +218,75 @@ class TaskController {
 				});
 			},
 			TaskErrorMessages.CREATE_TASK_ERROR
+		);
+	}
+
+	async createTasksBulk(req: BulkCreateTaskRequest, res: Response): Promise<void> {
+		const { tasks } = req.body;
+
+		if (!Array.isArray(tasks) || tasks.length === 0) {
+			BaseController.sendBadRequest(res, TaskErrorMessages.ARRAY_IS_REQUIRED);
+			return;
+		}
+
+		if (tasks.length > limit) {
+			BaseController.sendBadRequest(res, TaskErrorMessages.BATCH_LIMIT);
+			return;
+		}
+
+		await BaseController.handleRequest(
+			res,
+			async () => {
+				const results = [];
+				const errors = [];
+
+				for (const taskData of tasks) {
+					try {
+
+						if (!taskData.title || !taskData.authorId) {
+							errors.push({ task: taskData, error: TaskErrorMessages.REQUIRED_FIELDS });
+							continue;
+						}
+
+						const task = await prisma.task.create({
+							data: {
+								title: taskData.title,
+								description: taskData.description || null,
+								status: (taskData.status || TaskStatus.PENDING) as any,
+								priority: TaskController.priorityMap[
+									(taskData.priority || "medium").toLowerCase() as keyof typeof TaskController.priorityMap
+								] as any,
+								deadline: taskData.deadline && taskData.deadline.trim() !== '' 
+									? new Date(taskData.deadline) 
+									: null,
+								author: { connect: { id: taskData.authorId } },
+								...(taskData.assigneeIds && taskData.assigneeIds.length > 0 && {
+									assignees: {
+										connect: taskData.assigneeIds.map((id: string) => ({ id })),
+									},
+								}),
+							},
+							include: TaskController.taskIncludeConfig,
+						});
+
+						results.push(task);
+					} catch (error) {
+						errors.push({ 
+							task: taskData, 
+							error: error instanceof Error ? error.message : UNKNOWN_ERROR 
+						});
+					}
+				}
+
+				return {
+					success: results,
+					errors,
+					total: tasks.length,
+					created: results.length,
+					failed: errors.length,
+				};
+			},
+			TaskErrorMessages.BATCH_TASK_FAILURE
 		);
 	}
 

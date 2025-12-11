@@ -84,3 +84,11 @@ export interface TaskWithRelations {
 	author: UserBasicInfo;
 	assignees: UserBasicInfo[];
 }
+
+export interface BulkTaskCreateData {
+  tasks: TaskCreateData[];
+}
+
+export interface BulkCreateTaskRequest extends Request {
+  body: BulkTaskCreateData;
+}
