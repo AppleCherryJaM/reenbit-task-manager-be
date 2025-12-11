@@ -14,6 +14,8 @@ import {
 	type UpdateTaskRequest,
 } from "./task.types";
 
+const limit = 50;
+
 class TaskController {
 	private static readonly taskIncludeConfig = {
 		author: {
@@ -227,7 +229,7 @@ class TaskController {
 			return;
 		}
 
-		if (tasks.length > 50) {
+		if (tasks.length > limit) {
 			BaseController.sendBadRequest(res, TaskErrorMessages.BATCH_LIMIT);
 			return;
 		}
