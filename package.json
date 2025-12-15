@@ -5,7 +5,8 @@
 	"main": "app.ts",
 	"scripts": {
 		"dev": "nodemon src/app.ts",
-		"build": "tsc",
+		"build": "tsc && cpy src/generated/prisma/**/* build/generated/prisma --parents",
+    "postinstall": "prisma generate",
 		"start": "node build/app.js",
 		"generate": "npx prisma generate",
 		"lint": "biome lint .",
@@ -59,6 +60,7 @@
 		"@types/module-alias": "^2.0.4",
 		"@types/node": "^24.10.1",
 		"@types/pg": "^8.15.6",
+		"cpy-cli": "^6.0.0",
 		"nodemon": "^3.1.11",
 		"ts-node": "^10.9.2",
 		"tsconfig-paths": "^4.2.0",
