@@ -1,4 +1,3 @@
-import { $Enums } from "@/generated/prisma";
 import { ErrorHandler } from "@/models/errors/ErrorHandler";
 import type { TaskErrorMessages } from "@/models/errors/ErrorMessages";
 import type { Response } from "express";
