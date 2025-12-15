@@ -1,3 +1,4 @@
+import path from "path";
 import { defineConfig } from "prisma/config";
 
 const dbUrl = process.env.DATABASE_URL;
@@ -7,9 +8,9 @@ if (!dbUrl) {
 }
 
 export default defineConfig({
-	schema: "prisma/schema.prisma",
+	schema: path.join(__dirname, "../prisma/schema.prisma"),
 	migrations: {
-		path: "prisma/migrations",
+		path: path.join(__dirname, "../prisma/migrations"),
 	},
 	datasource: {
 		url: dbUrl,
