@@ -14,7 +14,7 @@ import express, { type Application } from "express";
 import router from "./routes/main-router";
 
 const app: Application = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 const FE_URL = process.env.CORS_FRONTEND_URL;
 
 app.use(express.json());
