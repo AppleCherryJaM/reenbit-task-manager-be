@@ -1,6 +1,7 @@
 import type { Response } from "express";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 import { TaskErrorMessages, UNKNOWN_ERROR } from "@/models/errors/ErrorMessages";
 import { getNumberParam } from "@/utils/task/task.utils";
@@ -182,7 +183,7 @@ class TaskController {
 		await BaseController.handleRequest(
 			res,
 			async () => {
-				return await prisma.$transaction(async (tx) => {
+				return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 					await TaskController.validateUsersExist(tx, authorId, assigneeIds);
 
 					let deadlineDate = null;

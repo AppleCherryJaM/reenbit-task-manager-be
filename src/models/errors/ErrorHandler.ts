@@ -1,6 +1,7 @@
 
 
-import { PrismaClientInitializationError, PrismaClientKnownRequestError, PrismaClientRustPanicError, PrismaClientUnknownRequestError, PrismaClientValidationError } from "@/generated/prisma/runtime/client";
+
+import { PrismaClientInitializationError, PrismaClientKnownRequestError, PrismaClientRustPanicError, PrismaClientUnknownRequestError, PrismaClientValidationError } from "@prisma/client/runtime/client";
 import type { Response } from "express";
 
 export interface AppError {
