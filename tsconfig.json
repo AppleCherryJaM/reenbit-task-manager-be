@@ -10,19 +10,18 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
-		"baseUrl": "./src",
+		"baseUrl": ".",       
 		"paths": {
-			"@/*": ["./*"],
-			"@controllers/*": ["./controllers/*"],
-			"@models/*": ["./models/*"],
-			"@services/*": ["./services/*"],
-			"@utils/*": ["./utils/*"],
-			"@lib/*": ["./lib/*"],
-			"@validators/*": ["./validators/*"],
-			"@validation/*": ["./models/validation/*"]
-		},
-		"ignoreDeprecations": "6.0"
+			"@/*": ["src/*"],                   
+			"@controllers/*": ["src/controllers/*"],
+			"@models/*": ["src/models/*"],
+			"@services/*": ["src/services/*"],
+			"@utils/*": ["src/utils/*"],
+			"@lib/*": ["src/lib/*"],
+			"@validators/*": ["src/validators/*"],
+			"@validation/*": ["src/models/validation/*"]
+		}
 	},
-	"include": ["src/**/*"],
+	"include": ["src/**/*", "src/prisma.config.ts"],
 	"exclude": ["node_modules", "build"]
 }
